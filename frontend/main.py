@@ -7,6 +7,7 @@ import base64
 from uuid import uuid4
 from datetime import datetime
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 # Load API config
 CONFIG_FILE = "config.json"
@@ -14,10 +15,12 @@ DATA_DIR = "data"
 SCREENSHOT_DIR = os.path.join(DATA_DIR, "screenshots")
 FEEDBACK_FILE = os.path.join(DATA_DIR, "feedback.json")
 RATE_LIMIT_FILE = os.path.join(DATA_DIR, "rate_limit.json")
+STATIC_DIR = "static"
 
 # Ensure necessary directories exist
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(STATIC_DIR, exist_ok=True)
 
 # Load API Config
 def load_config():
@@ -46,6 +49,7 @@ class FeedbackEntry(BaseModel):
     contact: dict = {}
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 def check_rate_limit(client_ip: str):
     """Check if the client has exceeded the rate limit."""
@@ -116,85 +120,9 @@ def get_valid_statuses():
 
 @app.get("/", response_class=HTMLResponse)
 def feedback_form():
-    """Serve the feedback submission form."""
-    return """
-    <html>
-    <body>
-        <h2>Submit Feedback</h2>
-        <form id="feedbackForm">
-            <label for="title">Title:</label>
-            <input type="text" id="title" required><br>
-    
-            <label for="text">Description:</label>
-            <textarea id="text" required></textarea><br>
-    
-            <label for="tag">Tag:</label>
-            <select id="tag">
-                <option value="Bug">Bug</option>
-                <option value="Feedback">Feedback</option>
-                <option value="Suggestion">Suggestion</option>
-            </select><br>
-    
-            <label for="screenshot">Screenshot:</label>
-            <input type="file" id="screenshot"><br>
-    
-            <label for="contact">Contact (Optional):</label>
-            <input type="text" id="contact"><br>
-    
-            <input type="submit" value="Submit">
-        </form>
-    
-        <script>
-            document.getElementById("feedbackForm").addEventListener("submit", async function(event) {
-                event.preventDefault();  // Verhindert normales Form-Submit
-    
-                const title = document.getElementById("title").value;
-                const text = document.getElementById("text").value;
-                const tag = document.getElementById("tag").value;
-                const contact = document.getElementById("contact").value;
-                const fileInput = document.getElementById("screenshot");
-    
-                let base64Screenshot = "";
-    
-                if (fileInput.files.length > 0) {
-                    const file = fileInput.files[0];
-                    base64Screenshot = await convertToBase64(file);
-                }
-    
-                const data = {
-                    title: title,
-                    text: text,
-                    tag: tag,
-                    screenshot: base64Screenshot,
-                    contact: contact ? { "name": contact } : {}
-                };
-    
-                const response = await fetch("/api/submit", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": "Bearer supersecretkey123"
-                    },
-                    body: JSON.stringify(data)
-                });
-    
-                const result = await response.json();
-                alert(result.message || "Error submitting feedback");
-            });
-    
-            // Funktion zum Konvertieren einer Datei in Base64
-            function convertToBase64(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = () => resolve(reader.result.split(",")[1]); // Entfernt das Präfix "data:image/png;base64,"
-                    reader.onerror = error => reject(error);
-                });
-            }
-        </script>
-    </body>
-    </html>
-    """
+    """Serve the feedback submission form from an external HTML file."""
+    with open(os.path.join(STATIC_DIR, "index.html"), "r") as f:
+        return HTMLResponse(content=f.read())
 
 # Load config.json example
 config_json = {
