@@ -45,15 +45,12 @@ document.getElementById("feedbackForm").addEventListener("submit", async functio
         responseMessage.classList.add("alert", "alert-success");
         responseMessage.innerText = result.message || "Feedback submitted successfully!";
         
-        // Move the response message above the submit button
         submitButton.parentNode.insertBefore(responseMessage, submitButton);
     } catch (error) {
         responseMessage.classList.remove("d-none", "alert-success");
         responseMessage.classList.add("alert", "alert-danger");
         responseMessage.innerText = "Error submitting feedback!";
-        
-        // Move the response message above the submit button
-        submitButton.parentNode.insertBefore(responseMessage, submitButton);
+                submitButton.parentNode.insertBefore(responseMessage, submitButton);
     }
 });
 
