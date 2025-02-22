@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Feedback Admin Panel</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        .nav-tabs .nav-link {
+            font-weight: bold;
+            color: #495057;
+            background-color: #e9ecef;
+            border: 1px solid #dee2e6;
+            border-bottom: 2px solid transparent;
+            transition: background-color 0.3s, border-bottom 0.3s;
+        }
+        .nav-tabs .nav-link.active {
+            color: #ffffff;
+            background-color: #007bff;
+            border-bottom: 2px solid #0056b3;
+        }
+    </style>
+    
+    <script src="/static/admin.js" defer></script>
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="card shadow p-4">
+            <h2 class="text-center mb-4">Feedback Management</h2>
+
+            <div class="d-grid gap-2 d-md-block">
+              <div class="mb-3"></div>
+              <button id="syncButton" class="btn btn-sm btn-outline-success">Sync Feedbacks</button>
+            </div>
+            <br />
+            <ul class="nav nav-tabs" id="feedbackTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="new-tab" data-bs-toggle="tab" data-bs-target="#new" type="button" role="tab">New Feedback</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="processed-tab" data-bs-toggle="tab" data-bs-target="#processed" type="button" role="tab">Processed Feedback</button>
+                </li>
+            </ul>
+            
+            <div class="tab-content mt-3">
+                <div class="tab-pane fade show active" id="new" role="tabpanel">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Tag</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="feedbackTableNew">
+                            <!-- New feedback entries will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="tab-pane fade" id="processed" role="tabpanel">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Tag</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="feedbackTableProcessed">
+                            <!-- Processed feedback entries will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
