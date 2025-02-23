@@ -1,18 +1,22 @@
-from fastapi import FastAPI, Depends, HTTPException, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+# file: main.py (backend)
+from fastapi import FastAPI, Depends, HTTPException, Form
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
 import os
 import json
+from PIL import Image, ImageDraw
 
 # Load configuration
 CONFIG_FILE = "config.json"
 with open(CONFIG_FILE, "r") as f:
     CONFIG = json.load(f)
 
-DATABASE_URL = CONFIG.get("database_url", "")
+DATABASE_URL = CONFIG.get("database_url", "postgresql://feedback_user:securepassword@localhost/feedback_db")
+UPLOAD_FOLDER = "static/uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Database setup
 Base = declarative_base()
@@ -46,6 +50,15 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+def generate_dummy_screenshot(filename):
+    """ Creates a dummy 800x600 screenshot with a placeholder text """
+    img = Image.new("RGB", (800, 600), color=(200, 200, 200))
+    draw = ImageDraw.Draw(img)
+    draw.text((320, 280), "Dummy Screenshot", fill=(0, 0, 0))
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    img.save(filepath, "JPEG")
+    return filename
+
 @app.get("/", response_class=HTMLResponse)
 def admin_panel():
     """ Serve the admin dashboard """
@@ -68,3 +81,43 @@ def get_feedbacks(db=Depends(get_db)):
     """ Retrieve all feedbacks """
     feedback_list = db.query(Feedback).all()
     return feedback_list
+
+@app.post("/sync_feedbacks")
+def sync_feedbacks(db=Depends(get_db)):
+    """ Simulates fetching new feedback from the frontend system and storing it in the database with dummy screenshots."""
+    new_feedbacks = [
+        {"title": "New Bug", "text": "A critical bug in the game", "tag": "Bug", "screenshot": generate_dummy_screenshot("bug1.jpg")},
+        {"title": "UI Issue", "text": "Some UI elements overlap", "tag": "Feedback", "screenshot": generate_dummy_screenshot("ui1.jpg")},
+        {"title": "Feature Request", "text": "We need a night mode", "tag": "Suggestion", "screenshot": generate_dummy_screenshot("feature1.jpg")}
+    ]
+    
+    for feedback in new_feedbacks:
+        db.add(Feedback(
+            title=feedback["title"],
+            text=feedback["text"],
+            tag=feedback["tag"],
+            status="submitted",
+            screenshot=feedback["screenshot"],
+            created_at=datetime.utcnow()
+        ))
+    db.commit()
+    
+    return JSONResponse(content={"message": "Sync completed successfully."})
+
+@app.post("/delete_feedback")
+def delete_feedback(feedback_id: int = Form(...), db=Depends(get_db)):
+    """ Delete a feedback entry by ID """
+    feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+    if not feedback:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    db.delete(feedback)
+    db.commit()
+    return JSONResponse(content={"message": "Feedback deleted successfully."})
+
+# Example for a config.json:
+#{
+#    "database_url": "postgresql://myuser:mypassword@localhost/feedback_db",
+#    "valid_statuses": ["submitted", "reviewed", "accepted", "rejected", "duplicate", "spam"],
+#    "admin_users": ["admin1", "admin2"],
+#    "secret_key": "supersecretkey123"
+#}
