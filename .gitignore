@@ -172,4 +172,5 @@ cython_debug/
 
 # Project specific files and directories
 data/
-config.jsonusers.json
+config.json
+users.json
