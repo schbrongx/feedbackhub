@@ -1,84 +1,93 @@
-document.getElementById("feedbackForm").addEventListener("submit", async function(event) {
-    event.preventDefault();  // Prevent default submit
+// file: script.js
+document.addEventListener("DOMContentLoaded", async function() {
+    const feedbackTableNew = document.getElementById("feedbackTableNew");
+    const feedbackTableProcessed = document.getElementById("feedbackTableProcessed");
+    const syncButton = document.getElementById("syncButton");
 
-    const submitButton = document.querySelector("button[type='submit']");
-    submitButton.disabled = true;
-    submitButton.innerText = "Submitted...";
-    submitButton.classList.add("btn-secondary");
-    submitButton.classList.remove("btn-primary");
-
-    const title = document.getElementById("title").value;
-    const text = document.getElementById("text").value;
-    const tag = document.getElementById("tag").value;
-    const contact = document.getElementById("contact").value;
-    const fileInput = document.getElementById("screenshot");
-    const responseMessage = document.getElementById("responseMessage");
-
-    let base64Screenshot = pastedScreenshot || "";  // In case it was pasted
-
-    if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        base64Screenshot = await convertToBase64(file);
-    }
-
-    const data = {
-        title: title,
-        text: text,
-        tag: tag,
-        screenshot: base64Screenshot,
-        contact: contact ? { "name": contact } : {}
-    };
-
-    try {
-        const response = await fetch("/api/submit", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer supersecretkey123"
-            },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-
-        responseMessage.classList.remove("d-none", "alert-danger");
-        responseMessage.classList.add("alert", "alert-success");
-        responseMessage.innerText = result.message || "Feedback submitted successfully!";
-        
-        submitButton.parentNode.insertBefore(responseMessage, submitButton);
-    } catch (error) {
-        responseMessage.classList.remove("d-none", "alert-success");
-        responseMessage.classList.add("alert", "alert-danger");
-        responseMessage.innerText = "Error submitting feedback!";
-                submitButton.parentNode.insertBefore(responseMessage, submitButton);
-    }
-});
-
-// Convert a file to base64
-function convertToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result.split(",")[1]);
-        reader.onerror = error => reject(error);
-    });
-}
-
-// Handle screenshots from the clipboard
-let pastedScreenshot = "";
-
-document.getElementById("pasteArea").addEventListener("paste", async function(event) {
-    const items = (event.clipboardData || event.originalEvent.clipboardData).items;
-
-    for (let item of items) {
-        if (item.type.startsWith("image")) {
-            const file = item.getAsFile();
-            pastedScreenshot = await convertToBase64(file);
-
-            // Show a preview
-            const previewImage = document.getElementById("previewImage");
-            previewImage.src = "data:image/png;base64," + pastedScreenshot;
-            previewImage.classList.remove("d-none");
+    async function loadFeedbacks() {
+        try {
+            const response = await fetch("/feedbacks");
+            const feedbacks = await response.json();
+            
+            feedbackTableNew.innerHTML = "";
+            feedbackTableProcessed.innerHTML = "";
+            
+            feedbacks.forEach(feedback => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${feedback.id}</td>
+                    <td>${feedback.title}</td>
+                    <td>${feedback.tag}</td>
+                    <td>${feedback.status}</td>
+                    <td>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Actions
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" onclick="updateStatus(${feedback.id}, 'reviewed')">Mark Reviewed</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="updateStatus(${feedback.id}, 'accepted')">Accept</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="updateStatus(${feedback.id}, 'duplicate')">Mark Duplicate</a></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteFeedback(${feedback.id})">Delete</a></li>
+                            </ul>
+                        </div>
+                    </td>
+                `;
+                
+                if (feedback.status === "submitted") {
+                    feedbackTableNew.appendChild(row);
+                } else {
+                    feedbackTableProcessed.appendChild(row);
+                }
+            });
+        } catch (error) {
+            console.error("Error loading feedbacks:", error);
         }
     }
+
+    async function syncFeedbacks() {
+        try {
+            syncButton.disabled = true;
+            syncButton.innerText = "Syncing...";
+            await fetch("/sync_feedbacks", { method: "POST" });
+            await loadFeedbacks();
+            syncButton.innerText = "Sync Feedbacks";
+            syncButton.disabled = false;
+        } catch (error) {
+            console.error("Error syncing feedbacks:", error);
+            syncButton.innerText = "Sync Failed";
+        }
+    }
+
+    async function deleteFeedback(feedbackId) {
+        if (!confirm("Are you sure you want to delete this feedback?")) {
+            return;
+        }
+        try {
+            await fetch("/delete_feedback", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: `feedback_id=${feedbackId}`
+            });
+            location.reload();
+        } catch (error) {
+            console.error("Error deleting feedback:", error);
+        }
+    }
+
+    syncButton.addEventListener("click", syncFeedbacks);
+    await loadFeedbacks();
 });
+
+async function updateStatus(feedbackId, newStatus) {
+    try {
+        await fetch("/update_status", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `feedback_id=${feedbackId}&new_status=${newStatus}`
+        });
+        location.reload();
+    } catch (error) {
+        console.error("Error updating status:", error);
+    }
+}
