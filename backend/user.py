@@ -62,7 +62,7 @@ def change_password(username, password):
 def main():
     if len(sys.argv) < 3:
         print("Usage:")
-        print("  user.py add <username> [role]        -- Adds a user (default role: user)")
+        print("  user.py add <username> [role]        -- Adds a user (default role: user), roles: user|poweruser")
         print("  user.py delete <username>            -- Deletes a user")
         print("  user.py password <username> <password>  -- Changes a user's password")
         sys.exit(1)
