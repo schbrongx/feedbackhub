@@ -85,7 +85,12 @@ async def get_current_user(request: Request):
         exp = datetime.fromisoformat(session["expires"])
         if datetime.utcnow() > exp:
             raise AuthenticationException("Session expired")
-        return session["username"]
+        username = session["username"]
+        users = load_users()  # load the list of users
+        user = next((u for u in users if u["username"] == username), None)
+        if not user:
+            raise AuthenticationException("User not found")
+        return user
     except Exception as e:
         raise AuthenticationException("Invalid session")
 
@@ -155,7 +160,6 @@ def login(response: Response, username: str = Form(...), password: str = Form(..
         response.delete_cookie("remembered_username")
     return response
 
-
 @app.get("/logout")
 def logout(response: Response):
     response = RedirectResponse(url="/login", status_code=303)
@@ -173,9 +177,12 @@ def generate_dummy_screenshot(filename):
 
 # Admin panel, login protected
 @app.get("/", response_class=HTMLResponse)
-def admin_panel(request: Request, current_user: str = Depends(get_current_user)):
+def admin_panel(request: Request, current_user: dict = Depends(get_current_user)):
     with open("static/admin.html", "r") as f:
-        return HTMLResponse(content=f.read())
+        content = f.read()
+    user_info = f"{current_user['username']} ({current_user.get('role', 'user')})"
+    content = content.replace("{{USER_INFO}}", user_info)
+    return HTMLResponse(content=content)
 
 @app.post("/update_status")
 def update_status(feedback_id: int = Form(...), new_status: str = Form(...), db=Depends(get_db)):
