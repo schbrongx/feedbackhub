@@ -234,41 +234,89 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
     }
 
-    // Render processed feedback rows applying tag and status filters (if any)
-    function renderProcessedFeedbacks() {
-        feedbackTableProcessed.innerHTML = "";
-        let filteredData = processedFeedbackData;
-        if (activeTagFilters.length > 0) {
-            filteredData = filteredData.filter(fb => activeTagFilters.includes(fb.tag));
+async function loadFeedbacks() {
+    try {
+        // Lade gespeicherte Filter (falls vorhanden)
+        const storedTags = localStorage.getItem("activeTagFilters");
+        if (storedTags) {
+            activeTagFilters = JSON.parse(storedTags);
         }
-        if (activeStatusFilters.length > 0) {
-            filteredData = filteredData.filter(fb => activeStatusFilters.includes(fb.status));
+        const storedStatuses = localStorage.getItem("activeStatusFilters");
+        if (storedStatuses) {
+            activeStatusFilters = JSON.parse(storedStatuses);
         }
-        filteredData.forEach(feedback => {
-            const truncatedText = feedback.text.length > 40 ? feedback.text.substring(0, 40) + "..." : feedback.text;
-            const previewImage = feedback.screenshot ? 
-                `<img src="/static/uploads/${feedback.screenshot}" alt="Screenshot" style="width: 50px; height: 50px; object-fit: cover;">` : 
-                `<div style="width: 50px; height: 50px; background-color: #ccc; display: flex; align-items: center; justify-content: center;">N/A</div>`;
-            let formattedTimestamp = "";
-            if (feedback.created_at) {
-                const ts = new Date(feedback.created_at);
-                formattedTimestamp = ts.toLocaleString();
-            }
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td>
-                    <input type="checkbox" class="rowCheckbox" data-id="${feedback.id}">
-                </td>
-                <td>${feedback.id}</td>
-                <td>${previewImage}</td>
-                <td>
+        // Feedbacks vom Backend abrufen
+        const response = await fetch("/feedbacks");
+        const feedbacks = await response.json();
+
+        // Neue Feedback-Tabelle leeren
+        feedbackTableNew.innerHTML = "";
+        // Processed-Feedback-Daten zurücksetzen
+        processedFeedbackData = [];
+        let totalCount = 0;
+        let acceptedCount = 0;
+        let spamCount = 0;
+
+        // Alle Feedbacks durchlaufen
+        feedbacks.forEach(feedback => {
+            totalCount++;
+            if (feedback.status === "accepted") acceptedCount++;
+            if (feedback.status === "spam") spamCount++;
+
+            if (feedback.status === "submitted") {
+                // Feedback mit Status "submitted" in die New-Tabelle einfügen
+                const row = document.createElement("tr");
+                // Checkbox
+                const checkboxCell = document.createElement("td");
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.classList.add("rowCheckbox");
+                checkbox.dataset.id = feedback.id;
+                checkboxCell.appendChild(checkbox);
+                row.appendChild(checkboxCell);
+                // ID
+                const idCell = document.createElement("td");
+                idCell.innerText = feedback.id;
+                row.appendChild(idCell);
+                // Preview
+                const previewCell = document.createElement("td");
+                const previewImage = feedback.screenshot ?
+                    `<img src="/static/uploads/${feedback.screenshot}" alt="Screenshot" style="width: 50px; height: 50px; object-fit: cover;">` :
+                    `<div style="width: 50px; height: 50px; background-color: #ccc; display: flex; align-items: center; justify-content: center;">N/A</div>`;
+                previewCell.innerHTML = previewImage;
+                row.appendChild(previewCell);
+                // Titel und Text (als klickbarer Container)
+                const titleCell = document.createElement("td");
+                const clickableContainer = document.createElement("div");
+                clickableContainer.classList.add("clickable-feedback");
+                clickableContainer.style.cursor = "pointer";
+                const truncatedText = feedback.text.length > 40 ? feedback.text.substring(0, 40) + "..." : feedback.text;
+                let formattedTimestamp = "";
+                if (feedback.created_at) {
+                    const ts = new Date(feedback.created_at);
+                    formattedTimestamp = ts.toLocaleString();
+                }
+                clickableContainer.innerHTML = `
                     ${feedback.title} (${truncatedText})
                     <br>
                     <small style="color: grey;">${formattedTimestamp}</small>
-                </td>
-                <td>${feedback.tag}</td>
-                <td>${feedback.status}</td>
-                <td>
+                `;
+                clickableContainer.addEventListener("click", function() {
+                    openFeedbackModal(feedback);
+                });
+                titleCell.appendChild(clickableContainer);
+                row.appendChild(titleCell);
+                // Tag
+                const tagCell = document.createElement("td");
+                tagCell.innerText = feedback.tag;
+                row.appendChild(tagCell);
+                // Status
+                const statusCell = document.createElement("td");
+                statusCell.innerText = feedback.status;
+                row.appendChild(statusCell);
+                // Aktionen (Dropdown)
+                const actionCell = document.createElement("td");
+                actionCell.innerHTML = `
                     <div class="dropdown">
                         <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Actions
@@ -280,112 +328,132 @@ document.addEventListener("DOMContentLoaded", async function() {
                             <li><a class="dropdown-item text-danger" href="#" onclick="deleteFeedback(${feedback.id})">Delete</a></li>
                         </ul>
                     </div>
-                </td>
-            `;
-            const rowCheckbox = row.querySelector(".rowCheckbox");
-            rowCheckbox.addEventListener("change", function() {
-                const allCheckboxes = feedbackTableProcessed.querySelectorAll(".rowCheckbox");
-                const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
-                document.getElementById("selectAllProcessed").checked = allChecked;
-                updateBulkActionButtons("Processed");
-            });
-            feedbackTableProcessed.appendChild(row);
+                `;
+                row.appendChild(actionCell);
+                // Checkbox Event
+                checkbox.addEventListener("change", function() {
+                    const allCheckboxes = feedbackTableNew.querySelectorAll(".rowCheckbox");
+                    const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+                    document.getElementById("selectAllNew").checked = allChecked;
+                    updateBulkActionButtons("New");
+                });
+                feedbackTableNew.appendChild(row);
+            } else {
+                // Feedbacks mit anderem Status in processedFeedbackData speichern
+                processedFeedbackData.push(feedback);
+            }
         });
-    }
 
-    async function loadFeedbacks() {
-        try {
-            // Retrieve stored filters
-            const storedTags = localStorage.getItem("activeTagFilters");
-            if (storedTags) {
-                activeTagFilters = JSON.parse(storedTags);
-            }
-            const storedStatuses = localStorage.getItem("activeStatusFilters");
-            if (storedStatuses) {
-                activeStatusFilters = JSON.parse(storedStatuses);
-            }
-            const response = await fetch("/feedbacks");
-            const feedbacks = await response.json();
-            
-            feedbackTableNew.innerHTML = "";
-            // Reset processed feedback data
-            processedFeedbackData = [];
-            let totalCount = 0;
-            let acceptedCount = 0;
-            let spamCount = 0;
-            
-            feedbacks.forEach(feedback => {
-                totalCount++;
-                if (feedback.status === "accepted") acceptedCount++;
-                if (feedback.status === "spam") spamCount++;
-                
-                if (feedback.status === "submitted") {
-                    // Render in New Feedback table
-                    const truncatedText = feedback.text.length > 40 ? feedback.text.substring(0, 40) + "..." : feedback.text;
-                    const previewImage = feedback.screenshot ? 
-                        `<img src="/static/uploads/${feedback.screenshot}" alt="Screenshot" style="width: 50px; height: 50px; object-fit: cover;">` : 
-                        `<div style="width: 50px; height: 50px; background-color: #ccc; display: flex; align-items: center; justify-content: center;">N/A</div>`;
-                    let formattedTimestamp = "";
-                    if (feedback.created_at) {
-                        const ts = new Date(feedback.created_at);
-                        formattedTimestamp = ts.toLocaleString();
-                    }
-                    const row = document.createElement("tr");
-                    row.innerHTML = `
-                        <td>
-                            <input type="checkbox" class="rowCheckbox" data-id="${feedback.id}">
-                        </td>
-                        <td>${feedback.id}</td>
-                        <td>${previewImage}</td>
-                        <td>
-                            ${feedback.title} (${truncatedText})
-                            <br>
-                            <small style="color: grey;">${formattedTimestamp}</small>
-                        </td>
-                        <td>${feedback.tag}</td>
-                        <td>${feedback.status}</td>
-                        <td>
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Actions
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#" onclick="updateStatus(${feedback.id}, 'accepted')">Accept</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="updateStatus(${feedback.id}, 'duplicate')">Mark Duplicate</a></li>
-                                    <li><a class="dropdown-item text-warning" href="#" onclick="updateStatus(${feedback.id}, 'spam')">Mark Spam</a></li>
-                                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteFeedback(${feedback.id})">Delete</a></li>
-                                </ul>
-                            </div>
-                        </td>
-                    `;
-                    const rowCheckbox = row.querySelector(".rowCheckbox");
-                    rowCheckbox.addEventListener("change", function() {
-                        const allCheckboxes = feedbackTableNew.querySelectorAll(".rowCheckbox");
-                        const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
-                        document.getElementById("selectAllNew").checked = allChecked;
-                        updateBulkActionButtons("New");
-                    });
-                    feedbackTableNew.appendChild(row);
-                } else {
-                    // For processed feedback, store for filtering/rendering
-                    processedFeedbackData.push(feedback);
-                }
-            });
-            
-            totalFeedback.innerText = `Total Feedback: ${totalCount}`;
-            acceptedFeedback.innerText = `Accepted: ${acceptedCount}`;
-            spamFeedback.innerText = `Spam: ${spamCount}`;
-            
-            // Update both dropdowns and render processed feedback using current filters
-            updateTagFilterDropdown();
-            updateStatusFilterDropdown();
-            renderProcessedFeedbacks();
-            updateFunnelIcon();
-            updateStatusFilterIcon();
-        } catch (error) {
-            console.error("Error loading feedbacks:", error);
-        }
+        totalFeedback.innerText = `Total Feedback: ${totalCount}`;
+        acceptedFeedback.innerText = `Accepted: ${acceptedCount}`;
+        spamFeedback.innerText = `Spam: ${spamCount}`;
+
+        // Dropdowns aktualisieren und Processed Feedback rendern
+        updateTagFilterDropdown();
+        updateStatusFilterDropdown();
+        renderProcessedFeedbacks();
+        updateFunnelIcon();
+        updateStatusFilterIcon();
+    } catch (error) {
+        console.error("Error loading feedbacks:", error);
     }
+}
+
+// Eine einzelne Definition von renderProcessedFeedbacks():
+function renderProcessedFeedbacks() {
+    feedbackTableProcessed.innerHTML = "";
+    let filteredData = processedFeedbackData;
+    if (activeTagFilters.length > 0) {
+        filteredData = filteredData.filter(fb => activeTagFilters.includes(fb.tag));
+    }
+    if (activeStatusFilters.length > 0) {
+        filteredData = filteredData.filter(fb => activeStatusFilters.includes(fb.status));
+    }
+    filteredData.forEach(feedback => {
+        const row = document.createElement("tr");
+        
+        // Checkbox
+        const checkboxCell = document.createElement("td");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.classList.add("rowCheckbox");
+        checkbox.dataset.id = feedback.id;
+        checkboxCell.appendChild(checkbox);
+        row.appendChild(checkboxCell);
+        
+        // ID
+        const idCell = document.createElement("td");
+        idCell.innerText = feedback.id;
+        row.appendChild(idCell);
+        
+        // Preview Image
+        const previewCell = document.createElement("td");
+        const previewImage = feedback.screenshot ?
+            `<img src="/static/uploads/${feedback.screenshot}" alt="Screenshot" style="width: 50px; height: 50px; object-fit: cover;">` :
+            `<div style="width: 50px; height: 50px; background-color: #ccc; display: flex; align-items: center; justify-content: center;">N/A</div>`;
+        previewCell.innerHTML = previewImage;
+        row.appendChild(previewCell);
+        
+        // Title and Text (clickable)
+        const titleCell = document.createElement("td");
+        const clickableContainer = document.createElement("div");
+        clickableContainer.classList.add("clickable-feedback");
+        clickableContainer.style.cursor = "pointer";
+        const truncatedText = feedback.text.length > 40 ? feedback.text.substring(0, 40) + "..." : feedback.text;
+        let formattedTimestamp = "";
+        if (feedback.created_at) {
+            const ts = new Date(feedback.created_at);
+            formattedTimestamp = ts.toLocaleString();
+        }
+        clickableContainer.innerHTML = `
+            ${feedback.title} (${truncatedText})
+            <br>
+            <small style="color: grey;">${formattedTimestamp}</small>
+        `;
+        clickableContainer.addEventListener("click", function() {
+            openFeedbackModal(feedback);
+        });
+        titleCell.appendChild(clickableContainer);
+        row.appendChild(titleCell);
+        
+        // Tag
+        const tagCell = document.createElement("td");
+        tagCell.innerText = feedback.tag;
+        row.appendChild(tagCell);
+        
+        // Status
+        const statusCell = document.createElement("td");
+        statusCell.innerText = feedback.status;
+        row.appendChild(statusCell);
+        
+        // Actions
+        const actionCell = document.createElement("td");
+        actionCell.innerHTML = `
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Actions
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="updateStatus(${feedback.id}, 'accepted')">Accept</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="updateStatus(${feedback.id}, 'duplicate')">Mark Duplicate</a></li>
+                    <li><a class="dropdown-item text-warning" href="#" onclick="updateStatus(${feedback.id}, 'spam')">Mark Spam</a></li>
+                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteFeedback(${feedback.id})">Delete</a></li>
+                </ul>
+            </div>
+        `;
+        row.appendChild(actionCell);
+        
+        // Checkbox listener
+        checkbox.addEventListener("change", function() {
+            const allCheckboxes = feedbackTableProcessed.querySelectorAll(".rowCheckbox");
+            const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+            document.getElementById("selectAllProcessed").checked = allChecked;
+            updateBulkActionButtons("Processed");
+        });
+        
+        feedbackTableProcessed.appendChild(row);
+    });
+}
 
     async function syncFeedbacks() {
         try {
@@ -492,3 +560,196 @@ window.updateStatus = async function(feedbackId, newStatus) {
         console.error("Error updating status:", error);
     }
 };
+
+function openFeedbackModal(feedback) {
+  document.getElementById("modalTitle").innerText = feedback.title;
+  document.getElementById("modalText").innerText = feedback.text;
+  document.getElementById("modalTag").innerText = "Tag: " + feedback.tag;
+  document.getElementById("modalStatus").innerText = "Status: " + feedback.status;
+  if (feedback.screenshot) {
+    document.getElementById("modalScreenshot").src = "/static/uploads/" + feedback.screenshot;
+    document.getElementById("modalScreenshotWrapper").style.display = "block";
+  } else {
+    document.getElementById("modalScreenshotWrapper").style.display = "none";
+  }
+  // Hide edit controls, show view mode icons
+  document.getElementById("editControls").style.display = "none";
+  document.getElementById("editIcon").style.display = "inline-block";
+
+  // Store the current feedback in a global variable (for editing later)
+  window.currentFeedback = feedback;
+  document.getElementById("feedbackModal").style.display = "flex";
+}
+
+document.getElementById("feedbackModal").addEventListener("click", function(e) {
+  // If the click target is the overlay (and not inside modal-content), close modal
+  if (e.target === this) {
+    closeFeedbackModal();
+  }
+});
+
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape") {
+    // Check if modal is open
+    if (document.getElementById("feedbackModal").style.display === "flex") {
+      closeFeedbackModal();
+    }
+  }
+});
+
+function closeFeedbackModal() {
+  document.getElementById("feedbackModal").style.display = "none";
+  // Optionally clear window.currentFeedback
+  window.currentFeedback = null;
+}
+
+document.getElementById("modalScreenshotWrapper").addEventListener("click", function(e) {
+  // Prevent propagation so that clicking on the screenshot doesn't close the feedback modal
+  e.stopPropagation();
+  openScreenshotModal();
+});
+
+function openScreenshotModal() {
+  let src = document.getElementById("modalScreenshot").src;
+  document.getElementById("enlargedScreenshot").src = src;
+  document.getElementById("screenshotModal").style.display = "flex";
+}
+
+document.getElementById("screenshotModal").addEventListener("click", function(e) {
+  if (e.target === this) {
+    closeScreenshotModal();
+  }
+});
+
+function closeScreenshotModal() {
+  document.getElementById("screenshotModal").style.display = "none";
+}
+
+document.getElementById("downloadIcon").addEventListener("click", function(e) {
+  e.stopPropagation();
+  // Create an anchor element to trigger download
+  const link = document.createElement("a");
+  const src = document.getElementById("modalScreenshot").src;
+  link.href = src;
+  link.download = window.currentFeedback ? window.currentFeedback.title + ".jpg" : "screenshot.jpg";
+  link.click();
+});
+
+document.getElementById("editIcon").addEventListener("click", function() {
+  enterEditMode();
+});
+
+function enterEditMode() {
+  // Hide the pencil icon, show save and cancel controls
+  document.getElementById("editIcon").style.display = "none";
+  document.getElementById("editControls").style.display = "flex";
+  
+  // Replace modalTitle with an input
+  const titleElem = document.getElementById("modalTitle");
+  const titleValue = titleElem.innerText;
+  titleElem.innerHTML = `<input type="text" id="editTitle" class="form-control" value="${titleValue}">`;
+  
+  // Replace modalText with a textarea
+  const textElem = document.getElementById("modalText");
+  const textValue = textElem.innerText;
+  textElem.innerHTML = `<textarea id="editText" class="form-control" style="height: 200px;">${textValue}</textarea>`;
+  
+  // Replace tag and status with dropdowns; for simplicity, assume you have arrays of possible values:
+  const tagElem = document.getElementById("modalTag");
+  const currentTag = tagElem.innerText.replace("Tag: ", "");
+  tagElem.innerHTML = `<select id="editTag" class="form-select">
+                          <option value="Bug">Bug</option>
+                          <option value="Feedback">Feedback</option>
+                          <option value="Suggestion">Suggestion</option>
+                        </select>`;
+  document.getElementById("editTag").value = currentTag;
+  
+  const statusElem = document.getElementById("modalStatus");
+  const currentStatus = statusElem.innerText.replace("Status: ", "");
+  statusElem.innerHTML = `<select id="editStatus" class="form-select">
+                             <option value="submitted">submitted</option>
+                             <option value="accepted">accepted</option>
+                             <option value="rejected">rejected</option>
+                             <option value="duplicate">duplicate</option>
+                             <option value="spam">spam</option>
+                           </select>`;
+  document.getElementById("editStatus").value = currentStatus;
+  
+  // Add a trash icon to screenshot preview (if a screenshot exists)
+  const screenshotWrapper = document.getElementById("modalScreenshotWrapper");
+  if (screenshotWrapper.style.display !== "none") {
+    // Create trash icon if not already present
+    if (!document.getElementById("trashIcon")) {
+      const trash = document.createElement("i");
+      trash.id = "trashIcon";
+      trash.className = "bi bi-trash text-white position-absolute";
+      trash.style.bottom = "5px";
+      trash.style.left = "5px";
+      trash.style.cursor = "pointer";
+      screenshotWrapper.appendChild(trash);
+      trash.addEventListener("click", function(e) {
+        e.stopPropagation();
+        // Remove screenshot: clear the src and update currentFeedback accordingly
+        document.getElementById("modalScreenshot").src = "";
+        screenshotWrapper.style.display = "none";
+        if (window.currentFeedback) {
+          window.currentFeedback.screenshot = "";
+        }
+      });
+    }
+  }
+}
+
+// Handle save and cancel in edit mode:
+document.getElementById("saveIcon").addEventListener("click", function() {
+  // Gather new values
+  const newTitle = document.getElementById("editTitle").value;
+  const newText = document.getElementById("editText").value;
+  const newTag = document.getElementById("editTag").value;
+  const newStatus = document.getElementById("editStatus").value;
+  
+  // For now, simply update the window.currentFeedback and (optionally) send to the backend via fetch.
+  window.currentFeedback.title = newTitle;
+  window.currentFeedback.text = newText;
+  window.currentFeedback.tag = newTag;
+  window.currentFeedback.status = newStatus;
+  
+  // Here you would typically call a backend endpoint to save changes.
+  // After saving, exit edit mode and refresh the modal view:
+  exitEditMode();
+});
+
+document.getElementById("cancelIcon").addEventListener("click", function() {
+  // If changes have been made, prompt for confirmation (simple implementation)
+  if (confirm("Discard changes?")) {
+    exitEditMode();
+  }
+});
+
+function exitEditMode() {
+  // Simply re-open the modal in view mode using the currentFeedback data
+  openFeedbackModal(window.currentFeedback);
+}
+
+function openFeedbackModal(feedback) {
+  // Populate modal fields
+  document.getElementById("modalTitle").innerText = feedback.title;
+  document.getElementById("modalText").innerText = feedback.text;
+  document.getElementById("modalTag").innerText = "Tag: " + feedback.tag;
+  document.getElementById("modalStatus").innerText = "Status: " + feedback.status;
+  if (feedback.screenshot) {
+    document.getElementById("modalScreenshot").src = "/static/uploads/" + feedback.screenshot;
+    document.getElementById("modalScreenshotWrapper").style.display = "block";
+  } else {
+    document.getElementById("modalScreenshotWrapper").style.display = "none";
+  }
+  // Reset edit controls if needed
+  document.getElementById("editControls").style.display = "none";
+  document.getElementById("editIcon").style.display = "inline-block";
+  
+  // Store the current feedback (for edit mode later)
+  window.currentFeedback = feedback;
+  
+  // Show the modal
+  document.getElementById("feedbackModal").style.display = "flex";
+}
