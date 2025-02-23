@@ -9,18 +9,19 @@ import os
 import bcrypt, json, secrets
 from PIL import Image, ImageDraw
 
-
 # Load configuration
 CONFIG_FILE = "config.json"
 with open(CONFIG_FILE, "r") as f:
     CONFIG = json.load(f)
 
-# Load users from users.json
+# Load users from users.json (updated to handle both dict and list)
 def load_users():
     with open("users.json", "r") as f:
-        return json.load(f)["users"]
+        data = json.load(f)
+    if isinstance(data, dict):
+        return data.get("users", [])
+    return data
 
-        
 DATABASE_URL = CONFIG.get("database_url", "")
 UPLOAD_FOLDER = "static/uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -91,19 +92,48 @@ async def get_current_user(request: Request):
 # Login page
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
-    # Check if there's a remembered username cookie
+    error = request.query_params.get("error", "")
     remembered = request.cookies.get("remembered_username", "")
+    error_html = f'<div class="alert alert-danger mt-3" role="alert">{error}</div>' if error else ""
     html_content = f"""
-    <html>
-      <body>
-        <form action="/login" method="post">
-          <label>Username: <input type="text" name="username" value="{remembered}"></label><br>
-          <label>Password: <input type="password" name="password"></label><br>
-          <label><input type="checkbox" name="remember_username"> Remember my username</label><br>
-          <label><input type="checkbox" name="stay_logged_in"> Stay logged in</label><br>
-          <button type="submit">Login</button>
-        </form>
-      </body>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Feedback Management - Login</title>
+      <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    </head>
+    <body class="bg-dark">
+      <div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+        <div class="card p-3" style="max-width: 350px;">
+          <h4 class="card-title text-center mb-3 text-dark">Feedback Management - Login</h4>
+          <form action="/login" method="post">
+            <div class="mb-2">
+              <label for="username" class="form-label text-dark">Username</label>
+              <input type="text" class="form-control" id="username" name="username" value="{remembered}" placeholder="Enter username">
+            </div>
+            <div class="mb-2">
+              <label for="password" class="form-label text-dark">Password</label>
+              <input type="password" class="form-control" id="password" name="password" placeholder="Enter password">
+            </div>
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="checkbox" id="remember_username" name="remember_username">
+              <label class="form-check-label text-dark" for="remember_username">Remember my username</label>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="stay_logged_in" name="stay_logged_in">
+              <label class="form-check-label text-dark" for="stay_logged_in">Stay logged in</label>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+          </form>
+          {error_html}
+        </div>
+      </div>
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
     </html>
     """
     return HTMLResponse(content=html_content)
@@ -114,18 +144,17 @@ def login(response: Response, username: str = Form(...), password: str = Form(..
     users = load_users()
     user = next((u for u in users if u["username"] == username), None)
     if not user or not verify_password(password, user["hashed_password"]):
-        return HTMLResponse("Invalid credentials", status_code=401)
-    # Create session info and set cookie (in production, sign and encrypt the cookie)
+        return RedirectResponse(url="/login?error=Invalid+credentials", status_code=303)
     session_data = create_session(username, stay_logged_in)
     response = RedirectResponse(url="/", status_code=303)
     response.set_cookie(key="session", value=json.dumps(session_data),
                         httponly=True, max_age=60*60*24*30 if stay_logged_in else 60*60)
-    # If user checked "remember my username", set a cookie
     if remember_username:
         response.set_cookie(key="remembered_username", value=username, max_age=60*60*24*30)
     else:
         response.delete_cookie("remembered_username")
     return response
+
 
 @app.get("/logout")
 def logout(response: Response):
@@ -142,18 +171,14 @@ def generate_dummy_screenshot(filename):
     img.save(filepath, "JPEG")
     return filename
 
-
 # Admin panel, login protected
 @app.get("/", response_class=HTMLResponse)
 def admin_panel(request: Request, current_user: str = Depends(get_current_user)):
-    # Serve the admin panel HTML (existing admin.html)
     with open("static/admin.html", "r") as f:
         return HTMLResponse(content=f.read())
 
-
 @app.post("/update_status")
 def update_status(feedback_id: int = Form(...), new_status: str = Form(...), db=Depends(get_db)):
-    """ Update the status of a feedback entry """
     feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
     if not feedback:
         raise HTTPException(status_code=404, detail="Feedback not found")
@@ -164,13 +189,11 @@ def update_status(feedback_id: int = Form(...), new_status: str = Form(...), db=
 
 @app.get("/feedbacks")
 def get_feedbacks(db=Depends(get_db)):
-    """ Retrieve all feedbacks """
     feedback_list = db.query(Feedback).all()
     return feedback_list
 
 @app.post("/sync_feedbacks")
 def sync_feedbacks(db=Depends(get_db)):
-    """ Simulates fetching new feedback from the frontend system and storing it in the database with dummy screenshots."""
     new_feedbacks = [
         {"title": "New Bug", "text": "A critical bug in the game", "tag": "Bug", "screenshot": generate_dummy_screenshot("bug1.jpg")},
         {"title": "UI Issue", "text": "Some UI elements overlap", "tag": "Feedback", "screenshot": generate_dummy_screenshot("ui1.jpg")},
@@ -187,12 +210,10 @@ def sync_feedbacks(db=Depends(get_db)):
             created_at=datetime.utcnow()
         ))
     db.commit()
-    
     return JSONResponse(content={"message": "Sync completed successfully."})
 
 @app.post("/delete_feedback")
 def delete_feedback(feedback_id: int = Form(...), db=Depends(get_db)):
-    """ Delete a feedback entry by ID """
     feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
     if not feedback:
         raise HTTPException(status_code=404, detail="Feedback not found")
