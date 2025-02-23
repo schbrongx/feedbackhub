@@ -36,9 +36,14 @@
   
   <script src="/static/admin.js" defer></script>
 </head>
-<body class="bg-light">
+<body class="bg-dark">
   <div class="container mt-5">
       <div class="card shadow p-4">
+	      <div class="text-end">
+              <a href="/logout">
+		          <i class="bi bi-box-arrow-right" style="font-size: 20px;"></i>
+		      </a>
+		  </div>
           <h2 class="text-center mb-4">Feedback Management</h2>
           <div class="d-flex mb-3">
               <span id="totalFeedback" class="badge bg-primary">Total Feedback: 0</span>&nbsp;
@@ -64,7 +69,7 @@
                   <table class="table table-striped">
                       <thead>
                           <tr>
-                              <th colspan="5">
+                              <th colspan="7">
                                   <button id="bulkAcceptNew" class="btn btn-sm btn-outline-success" disabled>Accept</button>
                                   <button id="bulkDuplicateNew" class="btn btn-sm btn-outline-warning" disabled>Mark Duplicate</button>
                                   <button id="bulkSpamNew" class="btn btn-sm btn-outline-danger" disabled>Mark Spam</button>
