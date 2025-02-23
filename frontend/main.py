@@ -1,3 +1,4 @@
+# file: main.py (frontend)
 from fastapi import FastAPI, HTTPException, Header, Depends
 from pydantic import BaseModel
 import json
@@ -131,3 +132,15 @@ config_json = {
 }
 with open(CONFIG_FILE, "w") as f:
     json.dump(config_json, f, indent=4)
+
+
+# Example for a config.json:
+#{
+#    "api_key": "supersecretkey123",
+#    "valid_statuses": [
+#        "submitted",
+#        "accepted",
+#        "rejected",
+#        "duplicate"
+#    ]
+#}
