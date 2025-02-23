@@ -1,20 +1,27 @@
 # file: main.py (backend)
-from fastapi import FastAPI, Depends, HTTPException, Form
+from fastapi import FastAPI, Request, Form, Depends, HTTPException, Response
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
-import json
+import bcrypt, json, secrets
 from PIL import Image, ImageDraw
+
 
 # Load configuration
 CONFIG_FILE = "config.json"
 with open(CONFIG_FILE, "r") as f:
     CONFIG = json.load(f)
 
-DATABASE_URL = CONFIG.get("database_url", "postgresql://feedback_user:securepassword@localhost/feedback_db")
+# Load users from users.json
+def load_users():
+    with open("users.json", "r") as f:
+        return json.load(f)["users"]
+
+        
+DATABASE_URL = CONFIG.get("database_url", "")
 UPLOAD_FOLDER = "static/uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -50,6 +57,82 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Simple session management using signed cookies
+def create_session(username: str, stay_logged_in: bool):
+    token = secrets.token_hex(16)
+    expires = timedelta(days=30) if stay_logged_in else timedelta(hours=1)
+    return {"username": username, "token": token, "expires": (datetime.utcnow() + expires).isoformat()}
+
+def verify_password(password: str, hashed: str):
+    return bcrypt.checkpw(password.encode(), hashed.encode())
+
+class AuthenticationException(Exception):
+    def __init__(self, detail: str):
+        self.detail = detail
+
+@app.exception_handler(AuthenticationException)
+async def authentication_exception_handler(request: Request, exc: AuthenticationException):
+    # Redirect to the login page, appending an error message as a query parameter.
+    return RedirectResponse(url=f"/login?error={exc.detail}")
+
+async def get_current_user(request: Request):
+    session_cookie = request.cookies.get("session")
+    if not session_cookie:
+        raise AuthenticationException("Not authenticated")
+    try:
+        session = json.loads(session_cookie)
+        exp = datetime.fromisoformat(session["expires"])
+        if datetime.utcnow() > exp:
+            raise AuthenticationException("Session expired")
+        return session["username"]
+    except Exception as e:
+        raise AuthenticationException("Invalid session")
+
+# Login page
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    # Check if there's a remembered username cookie
+    remembered = request.cookies.get("remembered_username", "")
+    html_content = f"""
+    <html>
+      <body>
+        <form action="/login" method="post">
+          <label>Username: <input type="text" name="username" value="{remembered}"></label><br>
+          <label>Password: <input type="password" name="password"></label><br>
+          <label><input type="checkbox" name="remember_username"> Remember my username</label><br>
+          <label><input type="checkbox" name="stay_logged_in"> Stay logged in</label><br>
+          <button type="submit">Login</button>
+        </form>
+      </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
+@app.post("/login")
+def login(response: Response, username: str = Form(...), password: str = Form(...),
+          remember_username: bool = Form(False), stay_logged_in: bool = Form(False)):
+    users = load_users()
+    user = next((u for u in users if u["username"] == username), None)
+    if not user or not verify_password(password, user["hashed_password"]):
+        return HTMLResponse("Invalid credentials", status_code=401)
+    # Create session info and set cookie (in production, sign and encrypt the cookie)
+    session_data = create_session(username, stay_logged_in)
+    response = RedirectResponse(url="/", status_code=303)
+    response.set_cookie(key="session", value=json.dumps(session_data),
+                        httponly=True, max_age=60*60*24*30 if stay_logged_in else 60*60)
+    # If user checked "remember my username", set a cookie
+    if remember_username:
+        response.set_cookie(key="remembered_username", value=username, max_age=60*60*24*30)
+    else:
+        response.delete_cookie("remembered_username")
+    return response
+
+@app.get("/logout")
+def logout(response: Response):
+    response = RedirectResponse(url="/login", status_code=303)
+    response.delete_cookie("session")
+    return response
+
 def generate_dummy_screenshot(filename):
     """ Creates a dummy 800x600 screenshot with a placeholder text """
     img = Image.new("RGB", (800, 600), color=(200, 200, 200))
@@ -59,11 +142,14 @@ def generate_dummy_screenshot(filename):
     img.save(filepath, "JPEG")
     return filename
 
+
+# Admin panel, login protected
 @app.get("/", response_class=HTMLResponse)
-def admin_panel():
-    """ Serve the admin dashboard """
+def admin_panel(request: Request, current_user: str = Depends(get_current_user)):
+    # Serve the admin panel HTML (existing admin.html)
     with open("static/admin.html", "r") as f:
         return HTMLResponse(content=f.read())
+
 
 @app.post("/update_status")
 def update_status(feedback_id: int = Form(...), new_status: str = Form(...), db=Depends(get_db)):
