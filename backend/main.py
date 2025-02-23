@@ -225,6 +225,5 @@ def delete_feedback(feedback_id: int = Form(...), db=Depends(get_db)):
 #{
 #    "database_url": "postgresql://myuser:mypassword@localhost/feedback_db",
 #    "valid_statuses": ["submitted", "reviewed", "accepted", "rejected", "duplicate", "spam"],
-#    "admin_users": ["admin1", "admin2"],
 #    "secret_key": "supersecretkey123"
 #}
