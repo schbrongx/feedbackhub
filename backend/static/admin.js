@@ -1,4 +1,3 @@
-// admin.js
 document.addEventListener("DOMContentLoaded", async function() {
     const feedbackTableNew = document.getElementById("feedbackTableNew");
     const feedbackTableProcessed = document.getElementById("feedbackTableProcessed");
@@ -103,7 +102,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     });
     // --- End Status Filter Dropdown Behavior ---
 
-    // Event listener for "New Feedback" select-all checkbox
+    // Event listener für "New Feedback" Select-All-Checkbox
     const selectAllNew = document.getElementById("selectAllNew");
     selectAllNew.addEventListener("change", function() {
         const rowCheckboxes = document.querySelectorAll("#feedbackTableNew .rowCheckbox");
@@ -113,7 +112,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         updateBulkActionButtons("New");
     });
 
-    // Event listener for "Processed Feedback" select-all checkbox (only for visible rows)
+    // Event listener für "Processed Feedback" Select-All-Checkbox (nur für gefilterte Zeilen)
     const selectAllProcessed = document.getElementById("selectAllProcessed");
     selectAllProcessed.addEventListener("change", function() {
         const rowCheckboxes = document.querySelectorAll("#feedbackTableProcessed .rowCheckbox");
@@ -123,7 +122,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         updateBulkActionButtons("Processed");
     });
 
-    // Helper: update bulk action buttons based on selected checkboxes
+    // Helper: updateBulkActionButtons
     function updateBulkActionButtons(tableType) {
         const tableSelector = tableType === "New" ? "#feedbackTableNew" : "#feedbackTableProcessed";
         const bulkButtons = document.querySelectorAll(
@@ -135,7 +134,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
     }
 
-    // Update funnel icon for tag filter using Bootstrap Icons
+    // Update Funnel Icons
     function updateFunnelIcon() {
         const funnelIcon = document.getElementById("funnelIcon");
         if (activeTagFilters.length > 0) {
@@ -148,7 +147,6 @@ document.addEventListener("DOMContentLoaded", async function() {
             funnelIcon.style.color = "";
         }
     }
-    // Update funnel icon for status filter using Bootstrap Icons
     function updateStatusFilterIcon() {
         const statusIcon = document.getElementById("statusFilterIcon");
         if (activeStatusFilters.length > 0) {
@@ -162,7 +160,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         }
     }
 
-    // Populate tag filter dropdown based on processed feedback data
+    // Populate Dropdowns
     function updateTagFilterDropdown() {
         const dropdown = document.getElementById("tagFilterDropdown");
         dropdown.innerHTML = "";
@@ -198,7 +196,6 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
     }
 
-    // Populate status filter dropdown based on processed feedback data
     function updateStatusFilterDropdown() {
         const dropdown = document.getElementById("statusFilterDropdown");
         dropdown.innerHTML = "";
@@ -234,226 +231,226 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
     }
 
-async function loadFeedbacks() {
-    try {
-        // Lade gespeicherte Filter (falls vorhanden)
-        const storedTags = localStorage.getItem("activeTagFilters");
-        if (storedTags) {
-            activeTagFilters = JSON.parse(storedTags);
+    // Render Processed Feedbacks
+    function renderProcessedFeedbacks() {
+        feedbackTableProcessed.innerHTML = "";
+        let filteredData = processedFeedbackData;
+        if (activeTagFilters.length > 0) {
+            filteredData = filteredData.filter(fb => activeTagFilters.includes(fb.tag));
         }
-        const storedStatuses = localStorage.getItem("activeStatusFilters");
-        if (storedStatuses) {
-            activeStatusFilters = JSON.parse(storedStatuses);
+        if (activeStatusFilters.length > 0) {
+            filteredData = filteredData.filter(fb => activeStatusFilters.includes(fb.status));
         }
-        // Feedbacks vom Backend abrufen
-        const response = await fetch("/feedbacks");
-        const feedbacks = await response.json();
-
-        // Neue Feedback-Tabelle leeren
-        feedbackTableNew.innerHTML = "";
-        // Processed-Feedback-Daten zurücksetzen
-        processedFeedbackData = [];
-        let totalCount = 0;
-        let acceptedCount = 0;
-        let spamCount = 0;
-
-        // Alle Feedbacks durchlaufen
-        feedbacks.forEach(feedback => {
-            totalCount++;
-            if (feedback.status === "accepted") acceptedCount++;
-            if (feedback.status === "spam") spamCount++;
-
-            if (feedback.status === "submitted") {
-                // Feedback mit Status "submitted" in die New-Tabelle einfügen
-                const row = document.createElement("tr");
-                // Checkbox
-                const checkboxCell = document.createElement("td");
-                const checkbox = document.createElement("input");
-                checkbox.type = "checkbox";
-                checkbox.classList.add("rowCheckbox");
-                checkbox.dataset.id = feedback.id;
-                checkboxCell.appendChild(checkbox);
-                row.appendChild(checkboxCell);
-                // ID
-                const idCell = document.createElement("td");
-                idCell.innerText = feedback.id;
-                row.appendChild(idCell);
-                // Preview
-                const previewCell = document.createElement("td");
-                const previewImage = feedback.screenshot ?
-                    `<img src="/static/uploads/${feedback.screenshot}" alt="Screenshot" style="width: 50px; height: 50px; object-fit: cover;">` :
-                    `<div style="width: 50px; height: 50px; background-color: #ccc; display: flex; align-items: center; justify-content: center;">N/A</div>`;
-                previewCell.innerHTML = previewImage;
-                row.appendChild(previewCell);
-                // Titel und Text (als klickbarer Container)
-                const titleCell = document.createElement("td");
-                const clickableContainer = document.createElement("div");
-                clickableContainer.classList.add("clickable-feedback");
-                clickableContainer.style.cursor = "pointer";
-                const truncatedText = feedback.text.length > 40 ? feedback.text.substring(0, 40) + "..." : feedback.text;
-                let formattedTimestamp = "";
-                if (feedback.created_at) {
-                    const ts = new Date(feedback.created_at);
-                    formattedTimestamp = ts.toLocaleString();
-                }
-                clickableContainer.innerHTML = `
-                    ${feedback.title} (${truncatedText})
-                    <br>
-                    <small style="color: grey;">${formattedTimestamp}</small>
-                `;
-                clickableContainer.addEventListener("click", function() {
-                    openFeedbackModal(feedback);
-                });
-                titleCell.appendChild(clickableContainer);
-                row.appendChild(titleCell);
-                // Tag
-                const tagCell = document.createElement("td");
-                tagCell.innerText = feedback.tag;
-                row.appendChild(tagCell);
-                // Status
-                const statusCell = document.createElement("td");
-                statusCell.innerText = feedback.status;
-                row.appendChild(statusCell);
-                // Aktionen (Dropdown)
-                const actionCell = document.createElement("td");
-                actionCell.innerHTML = `
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Actions
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#" onclick="updateStatus(${feedback.id}, 'accepted')">Accept</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="updateStatus(${feedback.id}, 'duplicate')">Mark Duplicate</a></li>
-                            <li><a class="dropdown-item text-warning" href="#" onclick="updateStatus(${feedback.id}, 'spam')">Mark Spam</a></li>
-                            <li><a class="dropdown-item text-danger" href="#" onclick="deleteFeedback(${feedback.id})">Delete</a></li>
-                        </ul>
-                    </div>
-                `;
-                row.appendChild(actionCell);
-                // Checkbox Event
-                checkbox.addEventListener("change", function() {
-                    const allCheckboxes = feedbackTableNew.querySelectorAll(".rowCheckbox");
-                    const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
-                    document.getElementById("selectAllNew").checked = allChecked;
-                    updateBulkActionButtons("New");
-                });
-                feedbackTableNew.appendChild(row);
-            } else {
-                // Feedbacks mit anderem Status in processedFeedbackData speichern
-                processedFeedbackData.push(feedback);
+        filteredData.forEach(feedback => {
+            const row = document.createElement("tr");
+            
+            // Checkbox
+            const checkboxCell = document.createElement("td");
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.classList.add("rowCheckbox");
+            checkbox.dataset.id = feedback.id;
+            checkboxCell.appendChild(checkbox);
+            row.appendChild(checkboxCell);
+            
+            // ID
+            const idCell = document.createElement("td");
+            idCell.innerText = feedback.id;
+            row.appendChild(idCell);
+            
+            // Preview Image
+            const previewCell = document.createElement("td");
+            const previewImage = feedback.screenshot ?
+                `<img src="/static/uploads/${feedback.screenshot}" alt="Screenshot" style="width: 50px; height: 50px; object-fit: cover;">` :
+                `<div style="width: 50px; height: 50px; background-color: #ccc; display: flex; align-items: center; justify-content: center;">N/A</div>`;
+            previewCell.innerHTML = previewImage;
+            row.appendChild(previewCell);
+            
+            // Title and Text (clickable)
+            const titleCell = document.createElement("td");
+            const clickableContainer = document.createElement("div");
+            clickableContainer.classList.add("clickable-feedback");
+            clickableContainer.style.cursor = "pointer";
+            const truncatedText = feedback.text.length > 40 ? feedback.text.substring(0, 40) + "..." : feedback.text;
+            let formattedTimestamp = "";
+            if (feedback.created_at) {
+                const ts = new Date(feedback.created_at);
+                formattedTimestamp = ts.toLocaleString();
             }
+            clickableContainer.innerHTML = `
+                ${feedback.title} (${truncatedText})
+                <br>
+                <small style="color: grey;">${formattedTimestamp}</small>
+            `;
+            clickableContainer.addEventListener("click", function() {
+                openFeedbackModal(feedback);
+            });
+            titleCell.appendChild(clickableContainer);
+            row.appendChild(titleCell);
+            
+            // Tag
+            const tagCell = document.createElement("td");
+            tagCell.innerText = feedback.tag;
+            row.appendChild(tagCell);
+            
+            // Status
+            const statusCell = document.createElement("td");
+            statusCell.innerText = feedback.status;
+            row.appendChild(statusCell);
+            
+            // Actions
+            const actionCell = document.createElement("td");
+            actionCell.innerHTML = `
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Actions
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="updateStatus(${feedback.id}, 'accepted')">Accept</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="updateStatus(${feedback.id}, 'duplicate')">Mark Duplicate</a></li>
+                        <li><a class="dropdown-item text-warning" href="#" onclick="updateStatus(${feedback.id}, 'spam')">Mark Spam</a></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteFeedback(${feedback.id})">Delete</a></li>
+                    </ul>
+                </div>
+            `;
+            row.appendChild(actionCell);
+            
+            // Checkbox Listener
+            checkbox.addEventListener("change", function() {
+                const allCheckboxes = feedbackTableProcessed.querySelectorAll(".rowCheckbox");
+                const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+                document.getElementById("selectAllProcessed").checked = allChecked;
+                updateBulkActionButtons("Processed");
+            });
+            
+            feedbackTableProcessed.appendChild(row);
         });
-
-        totalFeedback.innerText = `Total Feedback: ${totalCount}`;
-        acceptedFeedback.innerText = `Accepted: ${acceptedCount}`;
-        spamFeedback.innerText = `Spam: ${spamCount}`;
-
-        // Dropdowns aktualisieren und Processed Feedback rendern
-        updateTagFilterDropdown();
-        updateStatusFilterDropdown();
-        renderProcessedFeedbacks();
-        updateFunnelIcon();
-        updateStatusFilterIcon();
-    } catch (error) {
-        console.error("Error loading feedbacks:", error);
     }
-}
 
-// Eine einzelne Definition von renderProcessedFeedbacks():
-function renderProcessedFeedbacks() {
-    feedbackTableProcessed.innerHTML = "";
-    let filteredData = processedFeedbackData;
-    if (activeTagFilters.length > 0) {
-        filteredData = filteredData.filter(fb => activeTagFilters.includes(fb.tag));
-    }
-    if (activeStatusFilters.length > 0) {
-        filteredData = filteredData.filter(fb => activeStatusFilters.includes(fb.status));
-    }
-    filteredData.forEach(feedback => {
-        const row = document.createElement("tr");
-        
-        // Checkbox
-        const checkboxCell = document.createElement("td");
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.classList.add("rowCheckbox");
-        checkbox.dataset.id = feedback.id;
-        checkboxCell.appendChild(checkbox);
-        row.appendChild(checkboxCell);
-        
-        // ID
-        const idCell = document.createElement("td");
-        idCell.innerText = feedback.id;
-        row.appendChild(idCell);
-        
-        // Preview Image
-        const previewCell = document.createElement("td");
-        const previewImage = feedback.screenshot ?
-            `<img src="/static/uploads/${feedback.screenshot}" alt="Screenshot" style="width: 50px; height: 50px; object-fit: cover;">` :
-            `<div style="width: 50px; height: 50px; background-color: #ccc; display: flex; align-items: center; justify-content: center;">N/A</div>`;
-        previewCell.innerHTML = previewImage;
-        row.appendChild(previewCell);
-        
-        // Title and Text (clickable)
-        const titleCell = document.createElement("td");
-        const clickableContainer = document.createElement("div");
-        clickableContainer.classList.add("clickable-feedback");
-        clickableContainer.style.cursor = "pointer";
-        const truncatedText = feedback.text.length > 40 ? feedback.text.substring(0, 40) + "..." : feedback.text;
-        let formattedTimestamp = "";
-        if (feedback.created_at) {
-            const ts = new Date(feedback.created_at);
-            formattedTimestamp = ts.toLocaleString();
+    async function loadFeedbacks() {
+        try {
+            // Lade gespeicherte Filter (falls vorhanden)
+            const storedTags = localStorage.getItem("activeTagFilters");
+            if (storedTags) {
+                activeTagFilters = JSON.parse(storedTags);
+            }
+            const storedStatuses = localStorage.getItem("activeStatusFilters");
+            if (storedStatuses) {
+                activeStatusFilters = JSON.parse(storedStatuses);
+            }
+            // Feedbacks vom Backend abrufen
+            const response = await fetch("/feedbacks");
+            const feedbacks = await response.json();
+
+            // Neue Feedback-Tabelle leeren
+            feedbackTableNew.innerHTML = "";
+            // Processed-Feedback-Daten zurücksetzen
+            processedFeedbackData = [];
+            let totalCount = 0;
+            let acceptedCount = 0;
+            let spamCount = 0;
+
+            // Alle Feedbacks durchlaufen
+            feedbacks.forEach(feedback => {
+                totalCount++;
+                if (feedback.status === "accepted") acceptedCount++;
+                if (feedback.status === "spam") spamCount++;
+
+                if (feedback.status === "submitted") {
+                    // Feedback in New-Tabelle einfügen
+                    const row = document.createElement("tr");
+                    // Checkbox
+                    const checkboxCell = document.createElement("td");
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.classList.add("rowCheckbox");
+                    checkbox.dataset.id = feedback.id;
+                    checkboxCell.appendChild(checkbox);
+                    row.appendChild(checkboxCell);
+                    // ID
+                    const idCell = document.createElement("td");
+                    idCell.innerText = feedback.id;
+                    row.appendChild(idCell);
+                    // Preview
+                    const previewCell = document.createElement("td");
+                    const previewImage = feedback.screenshot ?
+                        `<img src="/static/uploads/${feedback.screenshot}" alt="Screenshot" style="width: 50px; height: 50px; object-fit: cover;">` :
+                        `<div style="width: 50px; height: 50px; background-color: #ccc; display: flex; align-items: center; justify-content: center;">N/A</div>`;
+                    previewCell.innerHTML = previewImage;
+                    row.appendChild(previewCell);
+                    // Titel und Text (als klickbarer Container)
+                    const titleCell = document.createElement("td");
+                    const clickableContainer = document.createElement("div");
+                    clickableContainer.classList.add("clickable-feedback");
+                    clickableContainer.style.cursor = "pointer";
+                    const truncatedText = feedback.text.length > 40 ? feedback.text.substring(0, 40) + "..." : feedback.text;
+                    let formattedTimestamp = "";
+                    if (feedback.created_at) {
+                        const ts = new Date(feedback.created_at);
+                        formattedTimestamp = ts.toLocaleString();
+                    }
+                    clickableContainer.innerHTML = `
+                        ${feedback.title} (${truncatedText})
+                        <br>
+                        <small style="color: grey;">${formattedTimestamp}</small>
+                    `;
+                    clickableContainer.addEventListener("click", function() {
+                        openFeedbackModal(feedback);
+                    });
+                    titleCell.appendChild(clickableContainer);
+                    row.appendChild(titleCell);
+                    // Tag
+                    const tagCell = document.createElement("td");
+                    tagCell.innerText = feedback.tag;
+                    row.appendChild(tagCell);
+                    // Status
+                    const statusCell = document.createElement("td");
+                    statusCell.innerText = feedback.status;
+                    row.appendChild(statusCell);
+                    // Aktionen (Dropdown)
+                    const actionCell = document.createElement("td");
+                    actionCell.innerHTML = `
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Actions
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" onclick="updateStatus(${feedback.id}, 'accepted')">Accept</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="updateStatus(${feedback.id}, 'duplicate')">Mark Duplicate</a></li>
+                                <li><a class="dropdown-item text-warning" href="#" onclick="updateStatus(${feedback.id}, 'spam')">Mark Spam</a></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteFeedback(${feedback.id})">Delete</a></li>
+                            </ul>
+                        </div>
+                    `;
+                    row.appendChild(actionCell);
+                    // Checkbox Listener
+                    checkbox.addEventListener("change", function() {
+                        const allCheckboxes = feedbackTableNew.querySelectorAll(".rowCheckbox");
+                        const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+                        document.getElementById("selectAllNew").checked = allChecked;
+                        updateBulkActionButtons("New");
+                    });
+                    feedbackTableNew.appendChild(row);
+                } else {
+                    // Feedbacks mit anderem Status speichern
+                    processedFeedbackData.push(feedback);
+                }
+            });
+
+            totalFeedback.innerText = `Total Feedback: ${totalCount}`;
+            acceptedFeedback.innerText = `Accepted: ${acceptedCount}`;
+            spamFeedback.innerText = `Spam: ${spamCount}`;
+
+            // Dropdowns aktualisieren und Processed Feedback rendern
+            updateTagFilterDropdown();
+            updateStatusFilterDropdown();
+            renderProcessedFeedbacks();
+            updateFunnelIcon();
+            updateStatusFilterIcon();
+        } catch (error) {
+            console.error("Error loading feedbacks:", error);
         }
-        clickableContainer.innerHTML = `
-            ${feedback.title} (${truncatedText})
-            <br>
-            <small style="color: grey;">${formattedTimestamp}</small>
-        `;
-        clickableContainer.addEventListener("click", function() {
-            openFeedbackModal(feedback);
-        });
-        titleCell.appendChild(clickableContainer);
-        row.appendChild(titleCell);
-        
-        // Tag
-        const tagCell = document.createElement("td");
-        tagCell.innerText = feedback.tag;
-        row.appendChild(tagCell);
-        
-        // Status
-        const statusCell = document.createElement("td");
-        statusCell.innerText = feedback.status;
-        row.appendChild(statusCell);
-        
-        // Actions
-        const actionCell = document.createElement("td");
-        actionCell.innerHTML = `
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    Actions
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#" onclick="updateStatus(${feedback.id}, 'accepted')">Accept</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="updateStatus(${feedback.id}, 'duplicate')">Mark Duplicate</a></li>
-                    <li><a class="dropdown-item text-warning" href="#" onclick="updateStatus(${feedback.id}, 'spam')">Mark Spam</a></li>
-                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteFeedback(${feedback.id})">Delete</a></li>
-                </ul>
-            </div>
-        `;
-        row.appendChild(actionCell);
-        
-        // Checkbox listener
-        checkbox.addEventListener("change", function() {
-            const allCheckboxes = feedbackTableProcessed.querySelectorAll(".rowCheckbox");
-            const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
-            document.getElementById("selectAllProcessed").checked = allChecked;
-            updateBulkActionButtons("Processed");
-        });
-        
-        feedbackTableProcessed.appendChild(row);
-    });
-}
+    }
 
     async function syncFeedbacks() {
         try {
@@ -469,7 +466,7 @@ function renderProcessedFeedbacks() {
         }
     }
 
-    // Bulk Action Event Listeners for update actions (for Accept, Duplicate, and Spam)
+    // Bulk Action Listener: Update
     function addBulkUpdateListener(tableType, buttonIdSuffix, newStatus) {
         const btn = document.getElementById(`bulk${buttonIdSuffix}${tableType}`);
         if (btn) {
@@ -489,7 +486,7 @@ function renderProcessedFeedbacks() {
         }
     }
 
-    // Bulk Action Event Listener for delete action
+    // Bulk Action Listener: Delete
     function addBulkDeleteListener(tableType) {
         const btn = document.getElementById(`bulkDelete${tableType}`);
         if (btn) {
@@ -512,15 +509,13 @@ function renderProcessedFeedbacks() {
         }
     }
 
-    // Add bulk update listeners for both tables (Accept, Duplicate, Spam)
+    // Bulk Listeners
     addBulkUpdateListener("New", "Accept", "accepted");
     addBulkUpdateListener("New", "Duplicate", "duplicate");
     addBulkUpdateListener("New", "Spam", "spam");
     addBulkUpdateListener("Processed", "Accept", "accepted");
     addBulkUpdateListener("Processed", "Duplicate", "duplicate");
     addBulkUpdateListener("Processed", "Spam", "spam");
-
-    // Add bulk delete listeners for both tables
     addBulkDeleteListener("New");
     addBulkDeleteListener("Processed");
 
@@ -542,20 +537,19 @@ function renderProcessedFeedbacks() {
 
     syncButton.addEventListener("click", syncFeedbacks);
     await loadFeedbacks();
-    
-    // Expose loadFeedbacks globally so that quick actions can call it
+
+    // Expose loadFeedbacks globally so quick actions can call it
     window.loadFeedbacks = loadFeedbacks;
 });
-    
-// Update quick actions to call the globally defined loadFeedbacks()
+
 window.updateStatus = async function(feedbackId, newStatus) {
     try {
         await fetch("/update_status", {
             method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: `feedback_id=${feedbackId}&new_status=${newStatus}`
         });
-        await window.loadFeedbacks(); // now loadFeedbacks is globally available
+        await window.loadFeedbacks();
     } catch (error) {
         console.error("Error updating status:", error);
     }
@@ -572,17 +566,13 @@ function openFeedbackModal(feedback) {
   } else {
     document.getElementById("modalScreenshotWrapper").style.display = "none";
   }
-  // Hide edit controls, show view mode icons
   document.getElementById("editControls").style.display = "none";
   document.getElementById("editIcon").style.display = "inline-block";
-
-  // Store the current feedback in a global variable (for editing later)
   window.currentFeedback = feedback;
   document.getElementById("feedbackModal").style.display = "flex";
 }
 
 document.getElementById("feedbackModal").addEventListener("click", function(e) {
-  // If the click target is the overlay (and not inside modal-content), close modal
   if (e.target === this) {
     closeFeedbackModal();
   }
@@ -590,7 +580,6 @@ document.getElementById("feedbackModal").addEventListener("click", function(e) {
 
 document.addEventListener("keydown", function(e) {
   if (e.key === "Escape") {
-    // Check if modal is open
     if (document.getElementById("feedbackModal").style.display === "flex") {
       closeFeedbackModal();
     }
@@ -599,12 +588,10 @@ document.addEventListener("keydown", function(e) {
 
 function closeFeedbackModal() {
   document.getElementById("feedbackModal").style.display = "none";
-  // Optionally clear window.currentFeedback
   window.currentFeedback = null;
 }
 
 document.getElementById("modalScreenshotWrapper").addEventListener("click", function(e) {
-  // Prevent propagation so that clicking on the screenshot doesn't close the feedback modal
   e.stopPropagation();
   openScreenshotModal();
 });
@@ -627,7 +614,6 @@ function closeScreenshotModal() {
 
 document.getElementById("downloadIcon").addEventListener("click", function(e) {
   e.stopPropagation();
-  // Create an anchor element to trigger download
   const link = document.createElement("a");
   const src = document.getElementById("modalScreenshot").src;
   link.href = src;
@@ -640,21 +626,17 @@ document.getElementById("editIcon").addEventListener("click", function() {
 });
 
 function enterEditMode() {
-  // Hide the pencil icon, show save and cancel controls
   document.getElementById("editIcon").style.display = "none";
   document.getElementById("editControls").style.display = "flex";
   
-  // Replace modalTitle with an input
   const titleElem = document.getElementById("modalTitle");
   const titleValue = titleElem.innerText;
   titleElem.innerHTML = `<input type="text" id="editTitle" class="form-control" value="${titleValue}">`;
   
-  // Replace modalText with a textarea
   const textElem = document.getElementById("modalText");
   const textValue = textElem.innerText;
   textElem.innerHTML = `<textarea id="editText" class="form-control" style="height: 200px;">${textValue}</textarea>`;
   
-  // Replace tag and status with dropdowns; for simplicity, assume you have arrays of possible values:
   const tagElem = document.getElementById("modalTag");
   const currentTag = tagElem.innerText.replace("Tag: ", "");
   tagElem.innerHTML = `<select id="editTag" class="form-select">
@@ -675,10 +657,8 @@ function enterEditMode() {
                            </select>`;
   document.getElementById("editStatus").value = currentStatus;
   
-  // Add a trash icon to screenshot preview (if a screenshot exists)
   const screenshotWrapper = document.getElementById("modalScreenshotWrapper");
   if (screenshotWrapper.style.display !== "none") {
-    // Create trash icon if not already present
     if (!document.getElementById("trashIcon")) {
       const trash = document.createElement("i");
       trash.id = "trashIcon";
@@ -689,7 +669,6 @@ function enterEditMode() {
       screenshotWrapper.appendChild(trash);
       trash.addEventListener("click", function(e) {
         e.stopPropagation();
-        // Remove screenshot: clear the src and update currentFeedback accordingly
         document.getElementById("modalScreenshot").src = "";
         screenshotWrapper.style.display = "none";
         if (window.currentFeedback) {
@@ -700,39 +679,52 @@ function enterEditMode() {
   }
 }
 
-// Handle save and cancel in edit mode:
-document.getElementById("saveIcon").addEventListener("click", function() {
-  // Gather new values
+// Save-Button: Änderungen speichern (jetzt Backend-Aufruf)
+document.getElementById("saveIcon").addEventListener("click", async function() {
   const newTitle = document.getElementById("editTitle").value;
   const newText = document.getElementById("editText").value;
   const newTag = document.getElementById("editTag").value;
   const newStatus = document.getElementById("editStatus").value;
+  const newScreenshot = window.currentFeedback.screenshot || "";
   
-  // For now, simply update the window.currentFeedback and (optionally) send to the backend via fetch.
-  window.currentFeedback.title = newTitle;
-  window.currentFeedback.text = newText;
-  window.currentFeedback.tag = newTag;
-  window.currentFeedback.status = newStatus;
+  // Erstelle URL-encoded FormData
+  const formData = new URLSearchParams();
+  formData.append("feedback_id", window.currentFeedback.id);
+  formData.append("title", newTitle);
+  formData.append("text", newText);
+  formData.append("tag", newTag);
+  formData.append("status", newStatus);
+  formData.append("screenshot", newScreenshot);
   
-  // Here you would typically call a backend endpoint to save changes.
-  // After saving, exit edit mode and refresh the modal view:
-  exitEditMode();
+  try {
+    const res = await fetch("/update_feedback", {
+      method: "POST",
+      headers: {"Content-Type": "application/x-www-form-urlencoded"},
+      body: formData.toString()
+    });
+    if (!res.ok) {
+      throw new Error("Error updating feedback");
+    }
+    // Nach erfolgreichem Speichern die Liste neu laden und Modal schließen
+    await window.loadFeedbacks();
+    closeFeedbackModal();
+  } catch (err) {
+    console.error("Error saving feedback:", err);
+    alert("Error saving feedback. Please try again.");
+  }
 });
 
 document.getElementById("cancelIcon").addEventListener("click", function() {
-  // If changes have been made, prompt for confirmation (simple implementation)
   if (confirm("Discard changes?")) {
     exitEditMode();
   }
 });
 
 function exitEditMode() {
-  // Simply re-open the modal in view mode using the currentFeedback data
   openFeedbackModal(window.currentFeedback);
 }
 
 function openFeedbackModal(feedback) {
-  // Populate modal fields
   document.getElementById("modalTitle").innerText = feedback.title;
   document.getElementById("modalText").innerText = feedback.text;
   document.getElementById("modalTag").innerText = "Tag: " + feedback.tag;
@@ -743,13 +735,70 @@ function openFeedbackModal(feedback) {
   } else {
     document.getElementById("modalScreenshotWrapper").style.display = "none";
   }
-  // Reset edit controls if needed
   document.getElementById("editControls").style.display = "none";
   document.getElementById("editIcon").style.display = "inline-block";
-  
-  // Store the current feedback (for edit mode later)
   window.currentFeedback = feedback;
-  
-  // Show the modal
   document.getElementById("feedbackModal").style.display = "flex";
 }
+
+document.getElementById("feedbackModal").addEventListener("click", function(e) {
+  if (e.target === this) {
+    closeFeedbackModal();
+  }
+});
+
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape") {
+    if (document.getElementById("feedbackModal").style.display === "flex") {
+      closeFeedbackModal();
+    }
+  }
+});
+
+function closeFeedbackModal() {
+  document.getElementById("feedbackModal").style.display = "none";
+  window.currentFeedback = null;
+}
+
+document.getElementById("modalScreenshotWrapper").addEventListener("click", function(e) {
+  e.stopPropagation();
+  openScreenshotModal();
+});
+
+function openScreenshotModal() {
+  let src = document.getElementById("modalScreenshot").src;
+  document.getElementById("enlargedScreenshot").src = src;
+  document.getElementById("screenshotModal").style.display = "flex";
+}
+
+document.getElementById("screenshotModal").addEventListener("click", function(e) {
+  if (e.target === this) {
+    closeScreenshotModal();
+  }
+});
+
+function closeScreenshotModal() {
+  document.getElementById("screenshotModal").style.display = "none";
+}
+
+document.getElementById("downloadIcon").addEventListener("click", function(e) {
+  e.stopPropagation();
+  const link = document.createElement("a");
+  const src = document.getElementById("modalScreenshot").src;
+  link.href = src;
+  link.download = window.currentFeedback ? window.currentFeedback.title + ".jpg" : "screenshot.jpg";
+  link.click();
+});
+
+window.updateStatus = async function(feedbackId, newStatus) {
+  try {
+    await fetch("/update_status", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `feedback_id=${feedbackId}&new_status=${newStatus}`
+    });
+    await window.loadFeedbacks();
+  } catch (error) {
+    console.error("Error updating status:", error);
+  }
+};

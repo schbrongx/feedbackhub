@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # file: main.py (backend)
 from fastapi import FastAPI, Request, Form, Depends, HTTPException, Response
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
@@ -227,6 +228,27 @@ def delete_feedback(feedback_id: int = Form(...), db=Depends(get_db)):
     db.delete(feedback)
     db.commit()
     return JSONResponse(content={"message": "Feedback deleted successfully."})
+
+@app.post("/update_feedback")
+def update_feedback(
+    feedback_id: int = Form(...),
+    title: str = Form(...),
+    text: str = Form(...),
+    tag: str = Form(...),
+    status: str = Form(...),
+    screenshot: str = Form(""),  # Default: leerer String
+    db=Depends(get_db)
+):
+    feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
+    if not feedback:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    feedback.title = title
+    feedback.text = text
+    feedback.tag = tag
+    feedback.status = status
+    feedback.screenshot = screenshot  # Übernehme den neuen Wert (ggf. leer)
+    db.commit()
+    return JSONResponse(content={"message": "Feedback updated successfully."})
 
 # Example for a config.json:
 #{
