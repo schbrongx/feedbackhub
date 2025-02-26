@@ -176,13 +176,18 @@ def generate_dummy_screenshot(filename):
     img.save(filepath, "JPEG")
     return filename
 
-# Admin panel, login protected
 @app.get("/", response_class=HTMLResponse)
 def admin_panel(request: Request, current_user: dict = Depends(get_current_user)):
     with open("static/admin.html", "r") as f:
         content = f.read()
     user_info = f"{current_user['username']} ({current_user.get('role', 'user')})"
     content = content.replace("{{USER_INFO}}", user_info)
+
+    # set the role at the end of the html document:
+    content = content.replace(
+        "</body>",
+        f"<script>window.currentUserRole = '{current_user.get('role', 'user')}';</script></body>"
+    )
     return HTMLResponse(content=content)
 
 @app.post("/update_status")
