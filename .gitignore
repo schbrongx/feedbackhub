@@ -173,5 +173,6 @@ cython_debug/
 # Project specific files and directories
 data/
 uploads/
-config.json
+config_frontend.json
+config_backend.json
 users.json

@@ -6,5 +6,5 @@ if [ -d "venv" ]; then
 fi
 
 # Start Uvicorn with the specified settings
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn main_frontend:app --host 0.0.0.0 --port 8000 --reload
 

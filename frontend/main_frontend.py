@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 # Load API config
-CONFIG_FILE = "config.json"
+CONFIG_FILE = "config_frontend.json"
 DATA_DIR = "data"
 SCREENSHOT_DIR = os.path.join(DATA_DIR, "screenshots")
 FEEDBACK_FILE = os.path.join(DATA_DIR, "feedback.json")
@@ -116,16 +116,16 @@ def submit_feedback(entry: FeedbackEntry, authorization: str = Header(...), clie
 
 @app.get("/valid_statuses")
 def get_valid_statuses():
-    """Returns the valid statuses from config.json."""
+    """Returns the valid statuses from config_frontend.json."""
     return {"valid_statuses": VALID_STATUSES}
 
 @app.get("/", response_class=HTMLResponse)
 def feedback_form():
     """Serve the feedback submission form from an external HTML file."""
-    with open(os.path.join(STATIC_DIR, "index.html"), "r") as f:
+    with open(os.path.join(STATIC_DIR, "index_frontend.html"), "r") as f:
         return HTMLResponse(content=f.read())
 
-# Load config.json example
+# Load config_frontend.json example
 config_json = {
     "api_key": "supersecretkey123",
     "valid_statuses": ["submitted", "accepted", "rejected", "duplicate"]
@@ -134,7 +134,7 @@ with open(CONFIG_FILE, "w") as f:
     json.dump(config_json, f, indent=4)
 
 
-# Example for a config.json:
+# Example for a config_frontend.json:
 #{
 #    "api_key": "supersecretkey123",
 #    "valid_statuses": [

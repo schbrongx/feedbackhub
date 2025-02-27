@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# file: main.py (backend)
+# file: main_backend.py
 from fastapi import FastAPI, Request, Form, Depends, HTTPException, Response
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -11,7 +11,7 @@ import bcrypt, json, secrets
 from PIL import Image, ImageDraw
 
 # Load configuration
-CONFIG_FILE = "config.json"
+CONFIG_FILE = "config_backend.json"
 with open(CONFIG_FILE, "r") as f:
     CONFIG = json.load(f)
 
@@ -178,7 +178,7 @@ def generate_dummy_screenshot(filename):
 
 @app.get("/", response_class=HTMLResponse)
 def admin_panel(request: Request, current_user: dict = Depends(get_current_user)):
-    with open("static/admin.html", "r") as f:
+    with open("static/index_backend.html", "r") as f:
         content = f.read()
     user_info = f"{current_user['username']} ({current_user.get('role', 'user')})"
     content = content.replace("{{USER_INFO}}", user_info)
@@ -255,7 +255,7 @@ def update_feedback(
     db.commit()
     return JSONResponse(content={"message": "Feedback updated successfully."})
 
-# Example for a config.json:
+# Example for a config_backend.json:
 #{
 #    "database_url": "postgresql://myuser:mypassword@localhost/feedback_db",
 #    "valid_statuses": ["submitted", "reviewed", "accepted", "rejected", "duplicate", "spam"],

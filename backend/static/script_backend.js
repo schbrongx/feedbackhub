@@ -1,4 +1,4 @@
-// admin.js
+// script_backend.js
 document.addEventListener("DOMContentLoaded", async function() {
     const feedbackTableNew = document.getElementById("feedbackTableNew");
     const feedbackTableProcessed = document.getElementById("feedbackTableProcessed");
