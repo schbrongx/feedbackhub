@@ -327,6 +327,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             
             feedbackTableProcessed.appendChild(row);
         });
+	    hidePoweruserElements();
     }
 
     async function loadFeedbacks() {
@@ -411,6 +412,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                     row.appendChild(statusCell);
                     // Aktionen (Dropdown)
                     const actionCell = document.createElement("td");
+					actionCell.classList.add("action-cell");
                     actionCell.innerHTML = `
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -452,6 +454,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         } catch (error) {
             console.error("Error loading feedbacks:", error);
         }
+		hidePoweruserElements();
     }
 
     async function syncFeedbacks() {
@@ -806,17 +809,9 @@ window.updateStatus = async function(feedbackId, newStatus) {
 };
 
 function hidePoweruserElements() {
-    const feedbackTableNew = document.getElementById("feedbackTableNew");
-    const feedbackTableProcessed = document.getElementById("feedbackTableProcessed");
-    const syncButton = document.getElementById("syncButton");
-    const feedbackTabs = document.getElementById("feedbackTabs");
-    const totalFeedback = document.getElementById("totalFeedback");
-    const acceptedFeedback = document.getElementById("acceptedFeedback");
-    const spamFeedback = document.getElementById("spamFeedback");
- 
- // hide elements for normal users
+
+     // hide elements for normal users
     if (window.currentUserRole !== "poweruser") {
-        console.log("User is not a poweruser. Disabling action-cell classes");
         // hide the edit icon:
         const editIcon = document.getElementById("editIcon");
         if (editIcon) {

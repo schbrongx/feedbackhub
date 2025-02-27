@@ -185,8 +185,8 @@ def admin_panel(request: Request, current_user: dict = Depends(get_current_user)
 
     # set the role at the end of the html document:
     content = content.replace(
-        "</body>",
-        f"<script>window.currentUserRole = '{current_user.get('role', 'user')}';</script></body>"
+        "</head>",
+        f"  <script>window.currentUserRole = '{current_user.get('role', 'user')}';</script>\n</head>"
     )
     return HTMLResponse(content=content)
 
