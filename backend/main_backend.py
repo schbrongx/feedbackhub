@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 # file: main_backend.py
+import base64
+import bcrypt
+from datetime import datetime, timedelta
+import io
+import json
+import os
+import requests
+import secrets
 from fastapi import FastAPI, Request, Form, Depends, HTTPException, Response
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base
-from datetime import datetime, timedelta
-import os
-import bcrypt, json, secrets
 from PIL import Image, ImageDraw
 
 # Load configuration
@@ -39,10 +44,18 @@ def get_db():
     finally:
         db.close()
 
+def compress_screenshot(image_bytes, quality=50):
+    # we don't want to 
+    image = Image.open(io.BytesIO(image_bytes))
+    output = io.BytesIO()
+    image.convert("RGB").save(output, format="JPEG", quality=quality)
+    return output.getvalue()
+
 # Models
 class Feedback(Base):
     __tablename__ = "feedbacks"
     id = Column(Integer, primary_key=True, index=True)
+    external_id = Column(String(36), unique=True, index=True) 
     title = Column(String(255), nullable=False)
     text = Column(Text, nullable=False)
     tag = Column(String(50), nullable=False)
@@ -167,15 +180,6 @@ def logout(response: Response):
     response.delete_cookie("session")
     return response
 
-def generate_dummy_screenshot(filename):
-    """ Creates a dummy 800x600 screenshot with a placeholder text """
-    img = Image.new("RGB", (800, 600), color=(200, 200, 200))
-    draw = ImageDraw.Draw(img)
-    draw.text((320, 280), "Dummy Screenshot", fill=(0, 0, 0))
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    img.save(filepath, "JPEG")
-    return filename
-
 @app.get("/", response_class=HTMLResponse)
 def admin_panel(request: Request, current_user: dict = Depends(get_current_user)):
     with open("static/index_backend.html", "r") as f:
@@ -205,26 +209,6 @@ def get_feedbacks(db=Depends(get_db)):
     feedback_list = db.query(Feedback).all()
     return feedback_list
 
-@app.post("/sync_feedbacks")
-def sync_feedbacks(db=Depends(get_db)):
-    new_feedbacks = [
-        {"title": "New Bug", "text": "A critical bug in the game", "tag": "Bug", "screenshot": generate_dummy_screenshot("bug1.jpg")},
-        {"title": "UI Issue", "text": "Some UI elements overlap", "tag": "Feedback", "screenshot": generate_dummy_screenshot("ui1.jpg")},
-        {"title": "Feature Request", "text": "We need a night mode", "tag": "Suggestion", "screenshot": generate_dummy_screenshot("feature1.jpg")}
-    ]
-    
-    for feedback in new_feedbacks:
-        db.add(Feedback(
-            title=feedback["title"],
-            text=feedback["text"],
-            tag=feedback["tag"],
-            status="submitted",
-            screenshot=feedback["screenshot"],
-            created_at=datetime.utcnow()
-        ))
-    db.commit()
-    return JSONResponse(content={"message": "Sync completed successfully."})
-
 @app.post("/delete_feedback")
 def delete_feedback(feedback_id: int = Form(...), db=Depends(get_db)):
     feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
@@ -241,7 +225,7 @@ def update_feedback(
     text: str = Form(...),
     tag: str = Form(...),
     status: str = Form(...),
-    screenshot: str = Form(""),  # Default: leerer String
+    screenshot: str = Form(""),  # Default: empty
     db=Depends(get_db)
 ):
     feedback = db.query(Feedback).filter(Feedback.id == feedback_id).first()
@@ -251,13 +235,73 @@ def update_feedback(
     feedback.text = text
     feedback.tag = tag
     feedback.status = status
-    feedback.screenshot = screenshot  # Übernehme den neuen Wert (ggf. leer)
+    feedback.screenshot = screenshot
     db.commit()
     return JSONResponse(content={"message": "Feedback updated successfully."})
 
-# Example for a config_backend.json:
-#{
-#    "database_url": "postgresql://myuser:mypassword@localhost/feedback_db",
-#    "valid_statuses": ["submitted", "reviewed", "accepted", "rejected", "duplicate", "spam"],
-#    "secret_key": "supersecretkey123"
-#}
+@app.post("/sync_feedbacks")
+def sync_feedbacks(db=Depends(get_db)):
+    # 1. get feedback data from frontend
+    frontend_feedback_url = "http://localhost:8000/api/feedbacks/new"  # Passe Host/Port an
+    headers = {"Authorization": f"Bearer {CONFIG.get('api_key')}"}
+    
+    try:
+        r = requests.get(frontend_feedback_url, headers=headers, timeout=10)
+        r.raise_for_status()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching feedback: {str(e)}")
+    
+    new_feedbacks = r.json()  # list of feedback-dicts
+    existing_ids = {str(fb.id) for fb in db.query(Feedback).all()}
+    
+    # filter for IDs that are _not_ in the DB, we only want the new ones
+    to_sync = [fb for fb in new_feedbacks if fb["id"] not in existing_ids]
+    
+    # make a list of IDs that should have a screenshot
+    screenshot_ids = []
+    for fb in to_sync:
+        if fb.get("screenshot"):
+            screenshot_ids.append(fb["id"])
+    
+    # save the feedback but w/o screenshots, those we will fetch later
+    for fb in to_sync:
+        db.add(Feedback(
+            external_id=fb["id"],
+            title=fb["title"],
+            text=fb["text"],
+            tag=fb["tag"],
+            status="submitted",
+            screenshot="",  # intentionally empty
+            created_at=datetime.utcnow()
+        ))
+    db.commit()
+    
+    # 2. get screenshots
+    if screenshot_ids:
+        frontend_screenshot_url = "http://localhost:8000/api/feedbacks/screenshots"
+        try:
+            r2 = requests.post(frontend_screenshot_url, headers=headers, json={"ids": screenshot_ids}, timeout=20)
+            r2.raise_for_status()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error while fetching screenshot: {str(e)}")
+        
+        screenshots = r2.json()  # expected: {feedback_id: base64_string, ...}
+        
+        for fb_id, b64_data in screenshots.items():
+            try:
+                image_bytes = base64.b64decode(b64_data)
+                compressed_bytes = compress_screenshot(image_bytes, quality=75)
+                filename = f"{fb_id}.jpg"
+                filepath = os.path.join(UPLOAD_FOLDER, filename)
+                with open(filepath, "wb") as f:
+                    f.write(compressed_bytes)
+                # add screenshot filename in the DB
+                feedback_obj = db.query(Feedback).filter(Feedback.external_id  == int(fb_id)).first()
+                if feedback_obj:
+                    feedback_obj.screenshot = filename
+            except Exception as e:
+                # error logging; TODO: maybe retry sync
+                print(f"Error while fetching sreenshot for feedback with ID {fb_id}: {e}")
+        db.commit()
+    
+    return JSONResponse(content={"message": "Sync completed successfully."})
