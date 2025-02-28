@@ -28,8 +28,10 @@ def load_users():
         return data.get("users", [])
     return data
 
-DATABASE_URL = CONFIG.get("database_url", "")
+DATABASE_URL = CONFIG.get("database_url")
 UPLOAD_FOLDER = "static/uploads"
+FRONTEND_URL = CONFIG.get("frontend_url")
+print("FRONTEND_URL = " + FRONTEND_URL)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Database setup
@@ -242,7 +244,7 @@ def update_feedback(
 @app.post("/sync_feedbacks")
 def sync_feedbacks(db=Depends(get_db)):
     # 1. get feedback data from frontend
-    frontend_feedback_url = "http://localhost:8000/api/feedbacks/new"  # Passe Host/Port an
+    frontend_feedback_url = f"{FRONTEND_URL}/api/feedbacks/new"  # Now using the config value
     headers = {"Authorization": f"Bearer {CONFIG.get('api_key')}"}
     
     try:
@@ -262,7 +264,7 @@ def sync_feedbacks(db=Depends(get_db)):
     for fb in to_sync:
         if fb.get("screenshot"):
             screenshot_ids.append(fb["id"])
-    
+
     # save the feedback but w/o screenshots, those we will fetch later
     for fb in to_sync:
         db.add(Feedback(
@@ -275,10 +277,10 @@ def sync_feedbacks(db=Depends(get_db)):
             created_at=datetime.utcnow()
         ))
     db.commit()
-    
+
     # 2. get screenshots
     if screenshot_ids:
-        frontend_screenshot_url = "http://localhost:8000/api/feedbacks/screenshots"
+        frontend_screenshot_url = f"{FRONTEND_URL}/api/feedbacks/screenshots"
         try:
             r2 = requests.post(frontend_screenshot_url, headers=headers, json={"ids": screenshot_ids}, timeout=20)
             r2.raise_for_status()
@@ -301,7 +303,17 @@ def sync_feedbacks(db=Depends(get_db)):
                     feedback_obj.screenshot = filename
             except Exception as e:
                 # error logging; TODO: maybe retry sync
-                print(f"Error while fetching sreenshot for feedback with ID {fb_id}: {e}")
+                print(f"Error while fetching screenshot for feedback with ID {fb_id}: {e}")
         db.commit()
-    
+
+    # 3. remove synced feedbacks from frontend
+    if to_sync:
+        delete_url = f"{FRONTEND_URL}/api/feedbacks/delete"
+        try:
+            r3 = requests.post(delete_url, headers=headers, json={"ids": [fb["id"] for fb in to_sync]}, timeout=10)
+            r3.raise_for_status()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error while deleting synced feedbacks from frontend: {str(e)}")
+       
     return JSONResponse(content={"message": "Sync completed successfully."})
+

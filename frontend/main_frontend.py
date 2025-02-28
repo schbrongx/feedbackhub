@@ -157,3 +157,31 @@ def get_feedback_screenshots(ids: dict = Body(...)):
             b64_string = base64.b64encode(image_bytes).decode()
             result[fb_id] = b64_string
     return result
+
+@app.post("/api/feedbacks/delete")
+def delete_synced_feedbacks(ids: dict = Body(...)):
+    """
+    Expects a JSON-object like: {"ids": ["id1", "id2", ...]}
+    Deletes all feedback-entries and screenshots whose "id" is in the list.
+    """
+    if os.path.exists(FEEDBACK_FILE):
+        with open(FEEDBACK_FILE, "r") as f:
+            feedback_data = json.load(f)
+        
+        # IDs, that have to be deleted
+        ids_to_delete = ids.get("ids", [])
+        
+        # check if feedback entry has a screenshot and remove it
+        for fb in feedback_data:
+            if fb["id"] in ids_to_delete and fb.get("screenshot"):
+                screenshot_path = os.path.join(SCREENSHOT_DIR, fb["screenshot"])
+                if os.path.exists(screenshot_path):
+                    os.remove(screenshot_path)
+        
+        # write back feedbacks that are not in the list
+        remaining = [fb for fb in feedback_data if fb["id"] not in ids_to_delete]
+        with open(FEEDBACK_FILE, "w") as f:
+            json.dump(remaining, f, indent=4)
+    return {"message": "Feedbacks deleted successfully."}
+ 
+ 
