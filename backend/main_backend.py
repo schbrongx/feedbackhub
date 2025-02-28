@@ -55,7 +55,7 @@ def compress_screenshot(image_bytes, quality=50):
 class Feedback(Base):
     __tablename__ = "feedbacks"
     id = Column(Integer, primary_key=True, index=True)
-    external_id = Column(String(36), unique=True, index=True) 
+    external_id = Column(String(36), unique=True, index=True)
     title = Column(String(255), nullable=False)
     text = Column(Text, nullable=False)
     tag = Column(String(50), nullable=False)
@@ -296,7 +296,7 @@ def sync_feedbacks(db=Depends(get_db)):
                 with open(filepath, "wb") as f:
                     f.write(compressed_bytes)
                 # add screenshot filename in the DB
-                feedback_obj = db.query(Feedback).filter(Feedback.external_id  == int(fb_id)).first()
+                feedback_obj = db.query(Feedback).filter(Feedback.external_id == fb_id).first()
                 if feedback_obj:
                     feedback_obj.screenshot = filename
             except Exception as e:
