@@ -7,6 +7,7 @@ import time
 import base64
 from uuid import uuid4
 from datetime import datetime
+from fastapi import Body
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -125,22 +126,34 @@ def feedback_form():
     with open(os.path.join(STATIC_DIR, "index_frontend.html"), "r") as f:
         return HTMLResponse(content=f.read())
 
-# Load config_frontend.json example
-config_json = {
-    "api_key": "supersecretkey123",
-    "valid_statuses": ["submitted", "accepted", "rejected", "duplicate"]
-}
-with open(CONFIG_FILE, "w") as f:
-    json.dump(config_json, f, indent=4)
+# endpoint for getting content of feedbacks
+@app.get("/api/feedbacks/new")
+def get_new_feedbacks():
+    if os.path.exists(FEEDBACK_FILE):
+        with open(FEEDBACK_FILE, "r") as f:
+            feedback_data = json.load(f)
+        # Hier kannst du optional noch filtern, z.B. nach einem Flag "new": True
+        new_feedbacks = [fb for fb in feedback_data if fb.get("new", False)]
+        return new_feedbacks
+    return []
 
-
-# Example for a config_frontend.json:
-#{
-#    "api_key": "supersecretkey123",
-#    "valid_statuses": [
-#        "submitted",
-#        "accepted",
-#        "rejected",
-#        "duplicate"
-#    ]
-#}
+# endpoint for receiving screenshots
+@app.post("/api/feedbacks/screenshots")
+def get_feedback_screenshots(ids: dict = Body(...)):
+    """
+    Expects a JSON-object like: {"ids": ["id1", "id2", ...]}
+    Delivers a dict: { "id1": "base64string...", "id2": "base64string...", ... }
+    """
+    result = {}
+    requested_ids = ids.get("ids", [])
+    for fb_id in requested_ids:
+        # Wir nehmen an, dass im Feedback JSON im Frontend das Feld "screenshot" den Dateinamen enthält.
+        # Öffne den Screenshot aus dem Screenshot-Verzeichnis:
+        screenshot_path = os.path.join(SCREENSHOT_DIR, f"{fb_id}.jpg")
+        if os.path.exists(screenshot_path):
+            with open(screenshot_path, "rb") as f:
+                image_bytes = f.read()
+            # Optional: hier könnte eine Komprimierung stattfinden (im Frontend eher nicht nötig)
+            b64_string = base64.b64encode(image_bytes).decode()
+            result[fb_id] = b64_string
+    return result
