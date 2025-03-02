@@ -1,0 +1,14 @@
+{
+    "users": [
+        {
+            "username": "admin",
+            "hashed_password": "$2b$12$9REItJgJEZI/9wN2Ocma/OiGo86MmhRq3lhE9boB2EoJsSEXjnI.e",
+            "role": "poweruser"
+        },
+        {
+            "username": "user",
+            "hashed_password": "$2b$12$F/lXsjyRdInfWX8NwkU4GOEJOTWQo2G23EfEOd1cvkfj94PDpXvkW",
+            "role": "user"
+        }
+    ]
+}
