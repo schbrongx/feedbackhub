@@ -560,17 +560,24 @@ window.updateStatus = async function(feedbackId, newStatus) {
     }
 };
 
+// ESC key closes top Modal
+document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") {
+        // check first: screenshot modal visible?
+        if (document.getElementById("screenshotModal").style.display === "flex") {
+            closeScreenshotModal();
+        } 
+        // otherwise check: feedback modal visible?
+        else if (document.getElementById("feedbackModal").style.display === "flex") {
+            closeFeedbackModal();
+        }
+    }
+});
+
+
 document.getElementById("feedbackModal").addEventListener("click", function(e) {
   if (e.target === this) {
     closeFeedbackModal();
-  }
-});
-
-document.addEventListener("keydown", function(e) {
-  if (e.key === "Escape") {
-    if (document.getElementById("feedbackModal").style.display === "flex") {
-      closeFeedbackModal();
-    }
   }
 });
 
@@ -735,13 +742,6 @@ document.getElementById("feedbackModal").addEventListener("click", function(e) {
   }
 });
 
-document.addEventListener("keydown", function(e) {
-  if (e.key === "Escape") {
-    if (document.getElementById("feedbackModal").style.display === "flex") {
-      closeFeedbackModal();
-    }
-  }
-});
 
 function closeFeedbackModal() {
   document.getElementById("feedbackModal").style.display = "none";
