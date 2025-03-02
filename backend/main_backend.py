@@ -316,4 +316,3 @@ def sync_feedbacks(db=Depends(get_db)):
             raise HTTPException(status_code=500, detail=f"Error while deleting synced feedbacks from frontend: {str(e)}")
        
     return JSONResponse(content={"message": "Sync completed successfully."})
-
