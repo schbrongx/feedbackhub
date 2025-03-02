@@ -798,7 +798,8 @@ function hidePoweruserElements() {
         // hide the edit icon:
         const editIcon = document.getElementById("editIcon");
         if (editIcon) {
-            editIcon.style.display = "none";
+			editIcon.style.setProperty("display", "none", "important");
+			editIcon.classList.add("d-none");
         }
         // hide the quick actions:
         document.querySelectorAll(".action-cell").forEach(cell => {
@@ -810,7 +811,7 @@ function hidePoweruserElements() {
         bulkButtons.forEach(btn => btn.style.display = "none");
         // hide the sync button:
         if (syncButton) {
-            syncButton.style.display = "none";
+            syncButton.style.setProperty("display", "none", "important");
         }
     }
 	
