@@ -47,11 +47,32 @@ document.getElementById("feedbackForm").addEventListener("submit", async functio
         responseMessage.innerText = result.message || "Feedback submitted successfully!";
         
         submitButton.parentNode.insertBefore(responseMessage, submitButton);
+		// reset the form after 5 seconds
+        setTimeout(function() {
+            submitButton.disabled = false;
+            submitButton.innerText = "Submit";
+            submitButton.classList.add("btn-primary");
+            submitButton.classList.remove("btn-secondary");
+            document.getElementById("feedbackForm").reset();
+            responseMessage.classList.add("d-none"); // hide response message
+			const previewImage = document.getElementById("previewImage");
+            previewImage.src = "";
+            previewImage.classList.add("d-none");
+            pastedScreenshot = "";
+        }, 5000)
     } catch (error) {
         responseMessage.classList.remove("d-none", "alert-success");
         responseMessage.classList.add("alert", "alert-danger");
         responseMessage.innerText = "Error submitting feedback!";
                 submitButton.parentNode.insertBefore(responseMessage, submitButton);
+		// reset only the button after 10 seconds in case of an error
+        setTimeout(function() {
+            submitButton.disabled = false;
+            submitButton.innerText = "Submit";
+            submitButton.classList.add("btn-primary");
+            submitButton.classList.remove("btn-secondary");
+            responseMessage.classList.add("d-none"); // hide response message
+        }, 10000)
     }
 });
 
