@@ -560,23 +560,6 @@ window.updateStatus = async function(feedbackId, newStatus) {
     }
 };
 
-function openFeedbackModal(feedback) {
-  document.getElementById("modalTitle").innerText = feedback.title;
-  document.getElementById("modalText").innerText = feedback.text;
-  document.getElementById("modalTag").innerText = "Tag: " + feedback.tag;
-  document.getElementById("modalStatus").innerText = "Status: " + feedback.status;
-  if (feedback.screenshot) {
-    document.getElementById("modalScreenshot").src = "/static/uploads/" + feedback.screenshot;
-    document.getElementById("modalScreenshotWrapper").style.display = "block";
-  } else {
-    document.getElementById("modalScreenshotWrapper").style.display = "none";
-  }
-  document.getElementById("editControls").style.display = "none";
-  document.getElementById("editIcon").style.display = "inline-block";
-  window.currentFeedback = feedback;
-  document.getElementById("feedbackModal").style.display = "flex";
-}
-
 document.getElementById("feedbackModal").addEventListener("click", function(e) {
   if (e.target === this) {
     closeFeedbackModal();

@@ -1,4 +1,4 @@
-# file: main.py (frontend)
+# file: main_frontend.py (frontend)
 from fastapi import FastAPI, HTTPException, Header, Depends
 from pydantic import BaseModel
 import json
