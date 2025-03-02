@@ -1,0 +1,41 @@
+[
+    {
+        "id": "4901aaf1-5625-4259-a4c0-46a328b6b581",
+        "title": "Feedback!",
+        "text": "Feedback occurs when outputs of a system are routed back as inputs as part of a chain of cause and effect that forms a circuit or loop.[1] The system can then be said to feed back into itself. The notion of cause-and-effect has to be handled carefully when applied to feedback systems.",
+        "tag": "Feedback",
+        "screenshot": "4901aaf1-5625-4259-a4c0-46a328b6b581.jpg",
+        "contact": {
+            "name": "feedback@example.com"
+        },
+        "timestamp": "2025-03-02T17:36:18.622751",
+        "status": "submitted",
+        "new": true
+    },
+    {
+        "id": "91739543-02e5-445f-9d8b-8ec20bd23c6e",
+        "title": "Bug (Software)",
+        "text": "A software bug is a design defect (bug) in computer software. A computer program with many or serious bugs may be described as buggy.\n\nThe effects of a software bug range from minor (such as a misspelled word in the user interface) to severe (such as frequent crashing).\n\nIn 2002, a study commissioned by the US Department of Commerce's National Institute of Standards and Technology concluded that \"software bugs, or errors, are so prevalent and so detrimental that they cost the US economy an estimated $59 billion annually, or about 0.6 percent of the gross domestic product\".[1]\n\nSince the 1950s, some computer systems have been designed to detect or auto-correct various software errors during operations.",
+        "tag": "Bug",
+        "screenshot": "91739543-02e5-445f-9d8b-8ec20bd23c6e.jpg",
+        "contact": {
+            "name": "bug@example.com"
+        },
+        "timestamp": "2025-03-02T17:38:10.407067",
+        "status": "submitted",
+        "new": true
+    },
+    {
+        "id": "218296f3-5ba5-41de-8ad1-9f0d82da3bf1",
+        "title": "A simple suggestion...",
+        "text": "Suggestion is the psychological process by which a person guides their own or another person's desired thoughts, feelings, and behaviors by presenting stimuli that may elicit them as reflexes instead of relying on conscious[1] effort.",
+        "tag": "Suggestion",
+        "screenshot": "218296f3-5ba5-41de-8ad1-9f0d82da3bf1.jpg",
+        "contact": {
+            "name": "suggestion@example.com"
+        },
+        "timestamp": "2025-03-02T17:39:51.899878",
+        "status": "submitted",
+        "new": true
+    }
+]
