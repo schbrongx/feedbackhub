@@ -42,6 +42,12 @@ by the backend.
     - Review and update `config_frontend.json` as needed (e.g., API key, valid statuses).
     - Ensure the folder structure remains intact, with the `data` directory for storing 
 	  feedback and screenshots, and the `static` folder for frontend assets.
+	- Example config_frontend.json:
+	```
+	{
+      "api_key": "any_secret_key_you_like_but_the_same_for_frontend_and_backend"
+    }
+    ```
 
 ### Running the Application
 - **On Unix-based Systems:**

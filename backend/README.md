@@ -52,7 +52,7 @@ the necessary environment variables and persistent storage.
 	{
       "database_url": "postgresql://DB_HOST:DB_PASSWORD/feedback_db",
       "frontend_url": "http://HOSTNAME:8000",
-      "secret_key": "any_secret_key_you_like"
+      "secret_key": "any_secret_key_you_like_but_the_same_for_frontend_and_backend"
     }
     ```
 
