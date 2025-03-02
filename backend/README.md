@@ -47,6 +47,14 @@ the necessary environment variables and persistent storage.
     - Review and update `config_backend.json` with your settings (database URL, frontend URL, 
 	API key, etc.). - Ensure that the `users.json` file contains valid user credentials and 
 	that passwords are properly hashed.
+	- Example config_backend.json:
+	```
+	{
+      "database_url": "postgresql://DB_HOST:DB_PASSWORD/feedback_db",
+      "frontend_url": "http://HOSTNAME:8000",
+      "secret_key": "any_secret_key_you_like"
+    }
+    ```
 
 ### Running the Application
     - **On Unix-based Systems:**
