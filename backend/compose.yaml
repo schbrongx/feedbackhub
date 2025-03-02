@@ -1,0 +1,29 @@
+services:
+  feedbackhub-backend:
+    build:
+      context: .
+    ports:
+      - "8001:8001"
+    depends_on:
+      feedbackhub-db:
+        condition: service_healthy
+
+  feedbackhub-db:
+    image: postgres:17.4
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD", "pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
