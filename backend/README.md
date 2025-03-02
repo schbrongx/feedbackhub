@@ -13,10 +13,7 @@ The command-line tool, `user.py`, is designed to manage users for the Feedback H
 - **Secure Storage:**  
   Passwords are hashed with bcrypt (which automatically includes a salt) and stored in `config.json`.
 
-## Requirements
-
-- Python 3.x
-- [bcrypt](https://pypi.org/project/bcrypt/) library  
-  Install with:  
-  ```bash
-  pip install bcrypt
+## Default users
+The default users are stored in users.json. They are: 
+- Username: admin, Password: admin, role: poweruser`
+- Username: user, Password: user, role: user
