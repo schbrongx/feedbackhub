@@ -34,8 +34,9 @@ document.getElementById("feedbackForm").addEventListener("submit", async functio
         const response = await fetch("/api/submit", {
             method: "POST",
             headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer supersecretkey123"
+                "Content-Type": "application/json"
+//                "Content-Type": "application/json",
+//				"Authorization": "Bearer supersecretkey123"
             },
             body: JSON.stringify(data)
         });
@@ -64,7 +65,7 @@ document.getElementById("feedbackForm").addEventListener("submit", async functio
         responseMessage.classList.remove("d-none", "alert-success");
         responseMessage.classList.add("alert", "alert-danger");
         responseMessage.innerText = "Error submitting feedback!";
-                submitButton.parentNode.insertBefore(responseMessage, submitButton);
+        submitButton.parentNode.insertBefore(responseMessage, submitButton);
 		// reset only the button after 10 seconds in case of an error
         setTimeout(function() {
             submitButton.disabled = false;

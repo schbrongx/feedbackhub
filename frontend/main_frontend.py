@@ -7,9 +7,14 @@ import time
 import base64
 from uuid import uuid4
 from datetime import datetime
-from fastapi import Body
+import logging
+from fastapi import Body, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+logger.info(" Logging started...")
 
 # Load API config
 CONFIG_FILE = "config_frontend.json"
@@ -65,12 +70,14 @@ def check_rate_limit(client_ip: str):
         json.dump(rate_limit, f)
 
 @app.post("/api/submit")
-def submit_feedback(entry: FeedbackEntry, authorization: str = Header(...), client_ip: str = Header(None)):
+def submit_feedback(entry: FeedbackEntry, request: Request, authorization: str = Header(None)):
     """API endpoint to receive feedback submissions from the game."""
-    # Check API Key
-    if authorization != f"Bearer {API_KEY}":
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    
+    client_ip = request.client.host
+
+    if client_ip not in ["127.0.0.1", "localhost"]:
+        if authorization != f"Bearer {API_KEY}":
+            raise HTTPException(status_code=403, detail="Invalid API key")
+
     # Enforce rate limit
     check_rate_limit(client_ip)
     
