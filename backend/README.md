@@ -17,3 +17,14 @@ The command-line tool, `user.py`, is designed to manage users for the Feedback H
 The default users are stored in users.json. They are: 
 - Username: admin, Password: admin, role: poweruser`
 - Username: user, Password: user, role: user
+
+## Configuration
+The configuration for the backend is stored in the file "config_backend.json".
+Here is an example for it's content:
+```json
+{
+  "database_url": "postgresql://DB_USERNAME:DB_PASSWORD@DB_HOSTNAME/feedback_db",
+  "frontend_url": "http://FRONTEND_HOSTNAME:8000",
+  "secret_key": "supersecretkey123"
+}
+```
