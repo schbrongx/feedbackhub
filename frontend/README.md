@@ -65,3 +65,13 @@ by the backend.
 
 With default settings the application will be accessible at: 
 [http://localhost:8000/](http://localhost:8000/)
+
+### Running the Application with Docker
+- ** Starting:**
+    ```bash
+    docker compose up --build     # add --detach to start 'detached' from your current shell
+	```
+- ** Stopping:**
+    ```bash
+	docke compose down     # add -v to remove all artifacts (volumes, services, ...)
+	```
