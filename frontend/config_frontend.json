@@ -1,3 +1,4 @@
 {
-    "api_key": "supersecretkey123"
+    "api_key": "supersecretkey123",
+    "trusted_hosts": ["172.20.0.1", "172.20.0.2"]
 }

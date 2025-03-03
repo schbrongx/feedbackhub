@@ -36,7 +36,7 @@ def load_config():
 
 CONFIG = load_config()
 API_KEY = CONFIG.get("api_key", "")
-VALID_STATUSES = CONFIG.get("valid_statuses", ["submitted", "accepted", "rejected", "duplicate"])
+TRUSTED_HOSTS = CONFIG.get("trusted_hosts", [])
 
 # Load rate limit tracking
 def load_rate_limit():
@@ -74,7 +74,7 @@ def submit_feedback(entry: FeedbackEntry, request: Request, authorization: str =
     """API endpoint to receive feedback submissions from the game."""
     client_ip = request.client.host
 
-    if client_ip not in ["127.0.0.1", "localhost"]:
+    if client_ip not in ["127.0.0.1", "localhost"] and client_ip not in TRUSTED_HOSTS:
         if authorization != f"Bearer {API_KEY}":
             raise HTTPException(status_code=403, detail="Invalid API key")
 
@@ -121,11 +121,6 @@ def submit_feedback(entry: FeedbackEntry, request: Request, authorization: str =
         json.dump(feedback_data, f, indent=4)
     
     return {"message": "Feedback submitted successfully", "id": entry_id}
-
-@app.get("/valid_statuses")
-def get_valid_statuses():
-    """Returns the valid statuses from config_frontend.json."""
-    return {"valid_statuses": VALID_STATUSES}
 
 @app.get("/", response_class=HTMLResponse)
 def feedback_form():

@@ -45,8 +45,9 @@ by the backend.
 	- Example config_frontend.json:
 	```
 	{
-      "api_key": "any_secret_key_you_like_but_the_same_for_frontend_and_backend"
-    }
+    "api_key": "any_secret_key_you_like_but_the_same_for_frontend_and_backend",
+    "trusted_hosts": ["192.168.0.1", "10.0.15.1"]
+  }
     ```
 
 ### Running the Application
@@ -75,3 +76,11 @@ With default settings the application will be accessible at:
     ```bash
 	docke compose down     # add -v to remove all artifacts (volumes, services, ...)
 	```
+	
+### Known problems
+- ** Access to API endpoint/api/submit: **
+If you see errors like this in your console/docker console ...
+```
+feedbackhub-frontend-1  | INFO:     172.20.0.1:64478 - "POST /api/submit HTTP/1.1" 403 Forbidden
+```
+... and you are sure the IP shown is trusted, add it to the config setting "trusted_hosts" and restart/rebuild the application.
