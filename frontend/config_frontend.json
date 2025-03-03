@@ -1,0 +1,9 @@
+{
+    "api_key": "supersecretkey123",
+    "valid_statuses": [
+        "submitted",
+        "accepted",
+        "rejected",
+        "duplicate"
+    ]
+}
