@@ -38,6 +38,9 @@ USER appuser
 # Copy the source code into the container.
 COPY . .
 
+# change ownership to nun-privileged user
+RUN chown -R appuser:appuser ./
+
 # Expose the port that the application listens on.
 EXPOSE 8001
 
