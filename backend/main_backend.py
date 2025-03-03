@@ -243,8 +243,9 @@ def update_feedback(
 
 @app.post("/sync_feedbacks")
 def sync_feedbacks(db=Depends(get_db)):
+  
     # 1. get feedback data from frontend
-    frontend_feedback_url = f"{FRONTEND_URL}/api/feedbacks/new"  # Now using the config value
+    frontend_feedback_url = f"{FRONTEND_URL}/api/feedbacks/new"
     headers = {"Authorization": f"Bearer {CONFIG.get('api_key')}"}
     
     try:
