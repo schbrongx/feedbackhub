@@ -246,12 +246,8 @@ def update_feedback(
 def sync_feedbacks(db=Depends(get_db)):
   
     # 1. get feedback data from frontend
-<<<<<<< HEAD
-    frontend_feedback_url = f"{FRONTEND_URL}/api/feedbacks/new"
-=======
     print(f"INFO:     sync_feedbacks(): get data from frontend")
     frontend_feedback_url = f"{FRONTEND_URL}/api/feedbacks/new"  # Now using the config value
->>>>>>> 9eab6f9 (polished docker configuration and setup)
     headers = {"Authorization": f"Bearer {CONFIG.get('api_key')}"}
     
     try:
