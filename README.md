@@ -12,13 +12,17 @@ The Feedback Hub Application is a web-based solution for collecting and managing
   - Exposes REST API endpoints for submitting feedback, retrieving new entries, and managing screenshots.
   - Stores feedback data and uploaded screenshots in local directories.
   - Implements client-side rate limiting and supports file uploads via clipboard or file input.
+  - Can run locally via script or as a Docker-container
 
 - **Backend:**
   - Developed with FastAPI and SQLAlchemy for ORM-based database interactions.
   - Provides an admin panel with session-based authentication and various management endpoints (update status, delete, sync feedback, etc.).
   - Synchronizes feedback entries and screenshots from the frontend, compressing images using the Pillow library.
   - Uses basic cookie-based session management (with potential for enhancement via signing or JWT).
-
+  - Can run locally via script or as a Docker-container
+  
 - **Database:**
   - Uses PostgreSQL, deployed via Docker Compose.
   - The database service is configured with environment variables and persists data using Docker volumes.
+  - If you are using Docker to run the backend, the DB is already included and does not need (but can) be run
+    seperately.
