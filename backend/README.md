@@ -77,3 +77,17 @@ the necessary environment variables and persistent storage.
 With default settings the application will be accessible at: 
 [http://localhost:8001/](http://localhost:8001/).
 
+### Running the Application with Docker
+- ** Starting:**
+    ```bash
+    docker compose up --build     # add --detach to start 'detached' from your current shell
+	```
+- ** Stopping:**
+    ```bash
+	docke compose down     # add -v to remove all artifacts (volumes, services, ...)
+	```
+	
+### Known problems
+- ** Access to frontend: **
+If you are getting Error 500 when trying to sync, make sure that your docker container can resolve
+and connect to the value you have set in frontend_url in you config_frontend.json
