@@ -8,6 +8,8 @@ a file or pasting from the clipboard — and optionally provide contact informat
 submitted, the feedback is stored with a timestamp and a status for further processing 
 by the backend.
 
+<a href="../assets/frontend_filled.jpg" target="_blank"><img src="../assets/frontend_filled.jpg" alt="Frontend Form Screenshot" width="25%"></a>
+
 ## Tech Stack
 - **Framework:** FastAPI (Python)
 - **Data Modeling:** Pydantic
