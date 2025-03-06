@@ -1,7 +1,7 @@
 # Feedback Hub Application
 
 ## Overview
-The Feedback Hub Application is a web-based solution for collecting and managing user feedback. It consists of two main components:
+The Feedback Hub Application is a minimalistic web-based solution for collecting and managing user feedback. It consists of two main components:
 
 - **Frontend:** Provides a public interface for users to submit feedback (including optional screenshots) and implements rate limiting and basic validation.
 - **Backend:** Offers an administrative panel for managing feedback submissions, handling user authentication, and synchronizing data with the frontend.
