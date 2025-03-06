@@ -4,6 +4,8 @@ services:
       context: .
     ports:
       - "8001:8001"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       feedbackhub-db:
         condition: service_healthy

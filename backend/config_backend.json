@@ -1,5 +1,5 @@
 {
     "database_url": "postgresql://feedback_user:mysecretpassword@feedbackhub-db/feedback_db",
-	"frontend_url": "http://feedbackhub-frontend:8000",
+	"frontend_url": "http://host.docker.internal:8000",
     "secret_key": "supersecretkey123"	
 }

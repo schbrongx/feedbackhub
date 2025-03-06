@@ -29,9 +29,10 @@ def load_users():
     return data
 
 DATABASE_URL = CONFIG.get("database_url")
+print("INFO:     DATABASE_URL = " + DATABASE_URL)
 UPLOAD_FOLDER = "static/uploads"
 FRONTEND_URL = CONFIG.get("frontend_url")
-print("FRONTEND_URL = " + FRONTEND_URL)
+print("INFO:     FRONTEND_URL = " + FRONTEND_URL)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Database setup
@@ -245,13 +246,19 @@ def update_feedback(
 def sync_feedbacks(db=Depends(get_db)):
   
     # 1. get feedback data from frontend
+<<<<<<< HEAD
     frontend_feedback_url = f"{FRONTEND_URL}/api/feedbacks/new"
+=======
+    print(f"INFO:     sync_feedbacks(): get data from frontend")
+    frontend_feedback_url = f"{FRONTEND_URL}/api/feedbacks/new"  # Now using the config value
+>>>>>>> 9eab6f9 (polished docker configuration and setup)
     headers = {"Authorization": f"Bearer {CONFIG.get('api_key')}"}
     
     try:
         r = requests.get(frontend_feedback_url, headers=headers, timeout=10)
         r.raise_for_status()
     except Exception as e:
+        print(f"ERROR:     {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching feedback: {str(e)}")
     
     new_feedbacks = r.json()  # list of feedback-dicts
@@ -280,6 +287,7 @@ def sync_feedbacks(db=Depends(get_db)):
     db.commit()
 
     # 2. get screenshots
+    print(f"INFO:     sync_feedbacks(): get screenshots")
     if screenshot_ids:
         frontend_screenshot_url = f"{FRONTEND_URL}/api/feedbacks/screenshots"
         try:
@@ -308,6 +316,7 @@ def sync_feedbacks(db=Depends(get_db)):
         db.commit()
 
     # 3. remove synced feedbacks from frontend
+    print(f"INFO:     sync_feedbacks(): delete synced data from frontend")
     if to_sync:
         delete_url = f"{FRONTEND_URL}/api/feedbacks/delete"
         try:
