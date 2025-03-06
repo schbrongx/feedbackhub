@@ -7,6 +7,8 @@ user authentication, status updates, and synchronization of feedback entries (in
 screenshots) from the frontend. Administrators can view, update, and delete feedback 
 through an intuitive admin panel.
 
+<a href="../assets/backend_filled.jpg" target="_blank"><img src="../assets/backend_filled.jpg" alt="Backend Screenshot" width="50%"></a>
+
 ## Tech Stack
 - **Framework:** FastAPI (Python)
 - **Database & ORM:** PostgreSQL and SQLAlchemy
